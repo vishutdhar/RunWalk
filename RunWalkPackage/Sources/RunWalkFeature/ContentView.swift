@@ -28,67 +28,112 @@ public struct ContentView: View {
     // MARK: - Selection View (Before Starting)
 
     private var selectionView: some View {
-        VStack(spacing: 40) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 30) {
+                Spacer()
+                    .frame(height: 20)
 
-            // App title
-            Text("RunWalk")
-                .font(.system(size: 34, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                // App title
+                Text("WalkRun")
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
 
-            // Interval picker - 2x3 grid for easy tapping
-            VStack(spacing: 20) {
-                Text("INTERVAL")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .tracking(1)
+                // RUN interval picker
+                VStack(spacing: 16) {
+                    HStack {
+                        Circle()
+                            .fill(Color.orange)
+                            .frame(width: 12, height: 12)
+                        Text("RUN")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundStyle(.orange)
+                            .tracking(1)
+                    }
 
-                // 2-column grid of interval options
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 12),
-                    GridItem(.flexible(), spacing: 12)
-                ], spacing: 12) {
-                    ForEach(IntervalDuration.allCases) { interval in
-                        IntervalChip(
-                            interval: interval,
-                            isSelected: timer.selectedInterval == interval
-                        ) {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                timer.selectedInterval = interval
+                    // 3-column grid for RUN
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 8),
+                        GridItem(.flexible(), spacing: 8),
+                        GridItem(.flexible(), spacing: 8)
+                    ], spacing: 8) {
+                        ForEach(IntervalDuration.allCases) { interval in
+                            IntervalChip(
+                                interval: interval,
+                                isSelected: timer.runInterval == interval,
+                                color: .orange
+                            ) {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    timer.runInterval = interval
+                                }
                             }
                         }
                     }
                 }
-                .padding(.horizontal, 24)
-            }
+                .padding(.horizontal, 20)
 
-            Spacer()
-
-            // Large circular start button (Apple Timer style)
-            Button(action: { timer.start() }) {
-                ZStack {
-                    Circle()
-                        .fill(Color.green)
-                        .frame(width: 180, height: 180)
-
-                    Circle()
-                        .fill(Color.green.opacity(0.3))
-                        .frame(width: 200, height: 200)
-
-                    VStack(spacing: 4) {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 50, weight: .medium))
-                        Text("Start")
-                            .font(.system(size: 22, weight: .semibold, design: .rounded))
+                // WALK interval picker
+                VStack(spacing: 16) {
+                    HStack {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 12, height: 12)
+                        Text("WALK")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundStyle(.green)
+                            .tracking(1)
                     }
-                    .foregroundStyle(.black)
-                }
-            }
-            .buttonStyle(.plain)
 
-            Spacer()
-                .frame(height: 60)
+                    // 3-column grid for WALK
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 8),
+                        GridItem(.flexible(), spacing: 8),
+                        GridItem(.flexible(), spacing: 8)
+                    ], spacing: 8) {
+                        ForEach(IntervalDuration.allCases) { interval in
+                            IntervalChip(
+                                interval: interval,
+                                isSelected: timer.walkInterval == interval,
+                                color: .green
+                            ) {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    timer.walkInterval = interval
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+
+                Spacer()
+                    .frame(height: 20)
+
+                // Large circular start button (Apple Timer style)
+                Button(action: { timer.start() }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 160, height: 160)
+
+                        Circle()
+                            .fill(Color.green.opacity(0.3))
+                            .frame(width: 180, height: 180)
+
+                        VStack(spacing: 4) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 44, weight: .medium))
+                            Text("Start")
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        }
+                        .foregroundStyle(.black)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+                    .frame(height: 40)
+            }
         }
+        .scrollIndicators(.hidden)
     }
 
     // MARK: - Running View (Timer Active)
@@ -134,7 +179,7 @@ public struct ContentView: View {
                         .contentTransition(.numericText(countsDown: true))
                         .animation(.linear(duration: 0.1), value: timer.timeRemaining)
 
-                    Text(timer.selectedInterval.displayName)
+                    Text(timer.currentInterval.displayName)
                         .font(.system(size: 17, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
@@ -187,8 +232,8 @@ public struct ContentView: View {
     // MARK: - Computed Properties
 
     private var progress: Double {
-        let elapsed = timer.selectedInterval.rawValue - timer.timeRemaining
-        return Double(elapsed) / Double(timer.selectedInterval.rawValue)
+        let elapsed = timer.currentInterval.rawValue - timer.timeRemaining
+        return Double(elapsed) / Double(timer.currentInterval.rawValue)
     }
 
     // MARK: - Initialization
@@ -201,18 +246,19 @@ public struct ContentView: View {
 struct IntervalChip: View {
     let interval: IntervalDuration
     let isSelected: Bool
+    var color: Color = .white
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(interval.displayName)
-                .font(.system(size: 22, weight: .semibold, design: .rounded))
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
                 .foregroundStyle(isSelected ? .black : .white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 60)
+                .frame(height: 50)
                 .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(isSelected ? Color.white : Color.white.opacity(0.12))
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isSelected ? color : Color.white.opacity(0.12))
                 )
         }
         .buttonStyle(.plain)

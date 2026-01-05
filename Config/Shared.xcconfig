@@ -34,6 +34,12 @@ INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationLand
 INFOPLIST_KEY_UIBackgroundModes = audio
 
 // ==========================================
+// Code Signing
+// ==========================================
+DEVELOPMENT_TEAM = DABJS94K9F
+CODE_SIGN_STYLE = Automatic
+
+// ==========================================
 // Entitlements
 // ==========================================
 // AI agents can modify Config/RunWalk.entitlements to add capabilities

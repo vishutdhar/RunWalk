@@ -67,14 +67,29 @@ public final class IntervalTimer {
     /// This stays true even when paused
     public private(set) var isActive: Bool = false
 
-    /// Selected interval duration
-    public var selectedInterval: IntervalDuration = .thirtySeconds {
+    /// Selected interval duration for RUN phase
+    public var runInterval: IntervalDuration = .thirtySeconds {
         didSet {
-            // Reset timer when interval changes (only if not running)
-            if !isRunning {
-                timeRemaining = selectedInterval.rawValue
+            // Reset timer when interval changes (only if not active and on run phase)
+            if !isActive && currentPhase == .run {
+                timeRemaining = runInterval.rawValue
             }
         }
+    }
+
+    /// Selected interval duration for WALK phase
+    public var walkInterval: IntervalDuration = .oneMinute {
+        didSet {
+            // Reset timer when interval changes (only if not active and on walk phase)
+            if !isActive && currentPhase == .walk {
+                timeRemaining = walkInterval.rawValue
+            }
+        }
+    }
+
+    /// Returns the interval duration for the current phase
+    public var currentInterval: IntervalDuration {
+        currentPhase == .run ? runInterval : walkInterval
     }
 
     // MARK: - Private Properties
@@ -85,7 +100,7 @@ public final class IntervalTimer {
     // MARK: - Initialization
 
     public init() {
-        timeRemaining = selectedInterval.rawValue
+        timeRemaining = runInterval.rawValue
     }
 
     // MARK: - Timer Controls
@@ -128,7 +143,7 @@ public final class IntervalTimer {
         pause()
         isActive = false
         currentPhase = .run
-        timeRemaining = selectedInterval.rawValue
+        timeRemaining = runInterval.rawValue
     }
 
     // MARK: - Private Methods
@@ -150,7 +165,8 @@ public final class IntervalTimer {
     /// Switches between run and walk phases
     private func switchPhase() {
         currentPhase = currentPhase.next
-        timeRemaining = selectedInterval.rawValue
+        // Use the appropriate interval for the new phase
+        timeRemaining = currentInterval.rawValue
 
         // Play sound for new phase
         soundManager.playSound(for: currentPhase)
