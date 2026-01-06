@@ -87,6 +87,17 @@ public final class IntervalTimer {
         }
     }
 
+    /// Whether background music is enabled
+    public var isMusicEnabled: Bool {
+        get { musicManager.isMusicEnabled }
+        set { musicManager.isMusicEnabled = newValue }
+    }
+
+    /// Whether music tracks are available in the bundle
+    public var hasMusicAvailable: Bool {
+        musicManager.hasTracksAvailable
+    }
+
     /// Returns the interval duration for the current phase
     public var currentInterval: IntervalDuration {
         currentPhase == .run ? runInterval : walkInterval
@@ -96,6 +107,7 @@ public final class IntervalTimer {
 
     private var timer: Timer?
     private let soundManager = SoundManager()
+    private let musicManager = MusicManager()
 
     // MARK: - Initialization
 
@@ -116,19 +128,22 @@ public final class IntervalTimer {
         // Play sound only on first start, not on resume from pause
         if isFirstStart {
             soundManager.playSound(for: currentPhase)
+            musicManager.playMusic(for: currentPhase)
+        } else {
+            // Resume from pause
+            musicManager.resume()
         }
 
         // Create timer that fires every second
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        // Using .common mode ensures timer fires even during scrolling
+        // Note: RunLoop warning comes from Apple's AVFoundation frameworks, not this code
+        let newTimer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.tick()
             }
         }
-
-        // Ensure timer runs even when scrolling
-        if let timer = timer {
-            RunLoop.current.add(timer, forMode: .common)
-        }
+        RunLoop.current.add(newTimer, forMode: .common)
+        timer = newTimer
     }
 
     /// Pauses the timer
@@ -136,6 +151,7 @@ public final class IntervalTimer {
         isRunning = false
         timer?.invalidate()
         timer = nil
+        musicManager.pause()
     }
 
     /// Stops and resets the timer (cancels the session)
@@ -144,6 +160,7 @@ public final class IntervalTimer {
         isActive = false
         currentPhase = .run
         timeRemaining = runInterval.rawValue
+        musicManager.stopMusic()
     }
 
     // MARK: - Private Methods
@@ -170,6 +187,9 @@ public final class IntervalTimer {
 
         // Play sound for new phase
         soundManager.playSound(for: currentPhase)
+
+        // Switch music for new phase
+        musicManager.switchPhase(to: currentPhase)
     }
 
     // MARK: - Computed Properties

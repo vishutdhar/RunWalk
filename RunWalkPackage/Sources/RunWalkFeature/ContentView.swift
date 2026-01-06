@@ -104,8 +104,17 @@ public struct ContentView: View {
                 }
                 .padding(.horizontal, 20)
 
-                Spacer()
-                    .frame(height: 20)
+                // Music toggle
+                HStack(spacing: 12) {
+                    Image(systemName: timer.isMusicEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(timer.isMusicEnabled ? .white : .secondary)
+
+                    @Bindable var timer = timer
+                    Toggle("Music", isOn: $timer.isMusicEnabled)
+                        .labelsHidden()
+                        .tint(.green)
+                }
 
                 // Large circular start button (Apple Timer style)
                 Button(action: { timer.start() }) {
