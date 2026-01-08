@@ -1,14 +1,27 @@
+import AudioToolbox
 import AVFoundation
 import UIKit
 
-/// Manages audio playback for run/walk phase transitions
-/// Uses speech synthesis for clear voice announcements
+/// Manages audio and haptic feedback for run/walk phase transitions
+/// Uses system sounds to match watchOS behavior
 @MainActor
 final class SoundManager {
-    // MARK: - Properties
 
-    /// Retain the synthesizer so it doesn't get deallocated mid-speech
-    private let synthesizer = AVSpeechSynthesizer()
+    // MARK: - System Sound IDs
+
+    /// System sound for notification ding (matches watch .notification)
+    private let notificationSoundID: SystemSoundID = 1057
+
+    /// System sound for click/tick (matches watch .click)
+    private let clickSoundID: SystemSoundID = 1104
+
+    // MARK: - Settings
+
+    /// Whether bell sounds are enabled
+    var bellsEnabled: Bool = true
+
+    /// Whether haptic feedback is enabled
+    var hapticsEnabled: Bool = true
 
     // MARK: - Initialization
 
@@ -18,15 +31,11 @@ final class SoundManager {
 
     // MARK: - Audio Session Configuration
 
-    /// Configures the audio session to play sounds even when phone is on silent
-    /// and to continue playing in the background
     private func configureAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            // Use playback category to ensure sound plays even on silent mode
-            // and continues in background
-            try session.setCategory(.playback, mode: .default, options: [.duckOthers])
-            try session.setActive(true)
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setActive(true, options: [])
         } catch {
             print("Failed to configure audio session: \(error)")
         }
@@ -37,59 +46,95 @@ final class SoundManager {
     /// Plays the appropriate sound for the given phase
     /// - Parameter phase: The timer phase (run or walk)
     func playSound(for phase: TimerPhase) {
-        // Stop any current speech
-        if synthesizer.isSpeaking {
-            synthesizer.stopSpeaking(at: .immediate)
+        // Play bells if enabled
+        if bellsEnabled {
+            switch phase {
+            case .run:
+                playRunSound()
+            case .walk:
+                playWalkSound()
+            }
         }
 
-        let utterance: AVSpeechUtterance
+        // Trigger haptic feedback if enabled
+        if hapticsEnabled {
+            triggerHaptic(for: phase)
+        }
+    }
 
-        switch phase {
-        case .run:
-            // Energetic "Run!" announcement
-            utterance = AVSpeechUtterance(string: "Run!")
-            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.1
-            utterance.pitchMultiplier = 1.15
-            utterance.volume = 1.0
-        case .walk:
-            // Calmer "Walk" announcement
-            utterance = AVSpeechUtterance(string: "Walk")
-            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.9
-            utterance.pitchMultiplier = 0.95
-            utterance.volume = 1.0
+    /// RUN phase: Triple ding (ding-ding-ding) - matches watch
+    private func playRunSound() {
+        // Triple ding for RUN with 400ms spacing (matches watch)
+        AudioServicesPlaySystemSound(notificationSoundID)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            AudioServicesPlaySystemSound(self.notificationSoundID)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            AudioServicesPlaySystemSound(self.notificationSoundID)
+        }
+    }
+
+    /// WALK phase: Single ding - matches watch
+    private func playWalkSound() {
+        // Single ding for WALK
+        AudioServicesPlaySystemSound(notificationSoundID)
+    }
+
+    /// Plays countdown haptic feedback only for pre-workout 3-2-1 countdown
+    func playCountdownBeep(index: Int) {
+        guard index >= 0, index < 3 else { return }
+
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.prepare()
+        generator.impactOccurred(intensity: 0.7)
+    }
+
+    /// Plays countdown tick at 3, 2, 1 seconds before phase transition
+    func playCountdownTick(secondsRemaining: Int) {
+        guard secondsRemaining > 0, secondsRemaining <= 3 else { return }
+
+        // Single click sound (matches watch .click) if bells enabled
+        if bellsEnabled {
+            AudioServicesPlaySystemSound(clickSoundID)
         }
 
-        // Use a clear voice
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-
-        // Small delay to ensure audio session is ready
-        utterance.preUtteranceDelay = 0.1
-
-        synthesizer.speak(utterance)
-
-        // Also trigger haptic feedback for additional notification
-        triggerHaptic(for: phase)
+        // Single haptic tick if haptics enabled
+        if hapticsEnabled {
+            triggerCountdownHaptic(secondsRemaining: secondsRemaining)
+        }
     }
 
     // MARK: - Haptic Feedback
 
     /// Triggers haptic feedback for phase transitions
-    /// - Parameter phase: The timer phase
+    /// RUN = 3 haptics, WALK = 1 haptic (matches watch)
     private func triggerHaptic(for phase: TimerPhase) {
         switch phase {
         case .run:
-            // Strong double haptic for "run"
-            let generator = UIImpactFeedbackGenerator(style: .heavy)
+            // Triple haptic for RUN with 400ms spacing (matches watch)
+            let generator = UIImpactFeedbackGenerator(style: .rigid)
             generator.prepare()
-            generator.impactOccurred()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                generator.impactOccurred()
+            generator.impactOccurred(intensity: 1.0)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                generator.impactOccurred(intensity: 1.0)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                generator.impactOccurred(intensity: 1.0)
             }
         case .walk:
-            // Softer single haptic for "walk"
-            let generator = UINotificationFeedbackGenerator()
+            // Single haptic for WALK
+            let generator = UIImpactFeedbackGenerator(style: .heavy)
             generator.prepare()
-            generator.notificationOccurred(.success)
+            generator.impactOccurred(intensity: 1.0)
         }
+    }
+
+    /// Single tick haptic for countdown
+    func triggerCountdownHaptic(secondsRemaining: Int) {
+        guard secondsRemaining > 0, secondsRemaining <= 3 else { return }
+
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.prepare()
+        generator.impactOccurred(intensity: 0.7)
     }
 }

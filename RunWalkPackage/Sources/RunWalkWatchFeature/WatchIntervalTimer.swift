@@ -1,35 +1,25 @@
 import SwiftUI
 import Observation
-import Dispatch
 import RunWalkShared
 
-// Re-export shared types for convenience
-public typealias TimerPhase = RunWalkShared.TimerPhase
-public typealias IntervalDuration = RunWalkShared.IntervalDuration
-public typealias WorkoutStats = RunWalkShared.WorkoutStats
-public typealias Clock = RunWalkShared.Clock
-public typealias SystemClock = RunWalkShared.SystemClock
-public typealias WorkoutRecord = RunWalkShared.WorkoutRecord
-
-/// Main timer model that handles the interval timing logic
+/// Watch-specific interval timer that coordinates with HKWorkoutSession and haptics
 /// Uses timestamp-based calculation for reliable background execution
 @Observable
 @MainActor
-public final class IntervalTimer {
+public final class WatchIntervalTimer {
     // MARK: - Published State
 
     /// Current phase (run or walk)
     public private(set) var currentPhase: TimerPhase = .run
 
     /// Time remaining in current interval (in seconds)
-    /// This is now calculated from timestamps, not decremented
     public private(set) var timeRemaining: Int = 30
 
     /// Whether the timer is currently running (ticking)
+    /// Uses our own timer state, not HKWorkoutSession (which may not work on simulator)
     public private(set) var isRunning: Bool = false
 
     /// Whether a session is active (started but not cancelled)
-    /// This stays true even when paused
     public private(set) var isActive: Bool = false
 
     /// Total elapsed time for the entire workout
@@ -38,25 +28,18 @@ public final class IntervalTimer {
     /// Workout statistics for summary
     public private(set) var workoutStats = WorkoutStats()
 
-    /// Whether to show the workout summary (set when workout ends)
+    /// Whether to show the workout summary
     public private(set) var showSummary: Bool = false
-
-    /// Whether the last workout was saved to HealthKit
-    public private(set) var workoutSavedToHealth: Bool = false
 
     /// Whether we're in the 3-2-1 countdown before workout starts
     public private(set) var isCountingDown: Bool = false
 
-    /// Current countdown value (3, 2, 1) during pre-workout countdown
+    /// Current countdown value (3, 2, 1)
     public private(set) var countdownValue: Int = 3
-
-    /// Previous timeRemaining for countdown detection
-    private var previousTimeRemaining: Int = 0
 
     /// Selected interval duration for RUN phase
     public var runInterval: IntervalDuration = .thirtySeconds {
         didSet {
-            // Reset timer when interval changes (only if not active and on run phase)
             if !isActive && currentPhase == .run {
                 timeRemaining = runInterval.rawValue
             }
@@ -66,7 +49,6 @@ public final class IntervalTimer {
     /// Selected interval duration for WALK phase
     public var walkInterval: IntervalDuration = .oneMinute {
         didSet {
-            // Reset timer when interval changes (only if not active and on walk phase)
             if !isActive && currentPhase == .walk {
                 timeRemaining = walkInterval.rawValue
             }
@@ -78,262 +60,233 @@ public final class IntervalTimer {
         currentPhase == .run ? runInterval : walkInterval
     }
 
+    /// Active calories from HealthKit
+    public var activeCalories: Double {
+        workoutManager.activeCalories
+    }
+
+    /// Heart rate from HealthKit
+    public var heartRate: Double {
+        workoutManager.heartRate
+    }
+
     // MARK: - Private Properties
 
-    /// Timer for updating the countdown
     private var timer: Timer?
-
-    /// When the current phase started (used for timestamp-based calculation)
     private var phaseStartTime: Date?
-
-    /// Accumulated time from before pause (handles pause/resume correctly)
     private var accumulatedTimeBeforePause: TimeInterval = 0
-
-    /// When the entire workout started
     private var workoutStartTime: Date?
-
-    /// Total time accumulated before pauses (for total elapsed time)
     private var totalTimeBeforePause: TimeInterval = 0
+    private var previousTimeRemaining: Int = 0
 
-    private let soundManager: SoundManager?
-    private let healthKitManager: HealthKitManager?
-    private let voiceManager: VoiceAnnouncementManager?
-
-    /// Clock for getting current time - injectable for testing
     private let clock: Clock
-
-    /// Whether to use the automatic dispatch timer (disabled for unit tests)
-    private let enableDispatchTimer: Bool
+    private let workoutManager: WatchWorkoutManager
+    private let hapticManager: WatchHapticManager
+    private let voiceManager: WatchVoiceAnnouncementManager
 
     /// Whether voice announcements are enabled (set from UI)
     public var voiceAnnouncementsEnabled: Bool = false {
         didSet {
-            voiceManager?.isEnabled = voiceAnnouncementsEnabled
+            voiceManager.isEnabled = voiceAnnouncementsEnabled
         }
     }
 
     /// Whether bell sounds are enabled (set from UI)
+    /// On watchOS, bells and haptics are played together via WKInterfaceDevice
     public var bellsEnabled: Bool = true {
         didSet {
-            soundManager?.bellsEnabled = bellsEnabled
+            hapticManager.bellsEnabled = bellsEnabled
         }
     }
 
     /// Whether haptic feedback is enabled (set from UI)
+    /// On watchOS, bells and haptics are played together via WKInterfaceDevice
     public var hapticsEnabled: Bool = true {
         didSet {
-            soundManager?.hapticsEnabled = hapticsEnabled
+            hapticManager.hapticsEnabled = hapticsEnabled
         }
     }
 
     // MARK: - Initialization
 
-    /// Creates an IntervalTimer
-    /// - Parameter clock: Clock for getting current time (default: SystemClock)
-    /// - Parameter enableAudio: Whether to enable audio managers (set false for testing)
-    /// - Parameter enableDispatchTimer: Whether to enable automatic tick timer (set false for unit tests)
-    /// - Parameter enableHealthKit: Whether to enable HealthKit integration (set false for testing)
-    public init(clock: Clock = SystemClock(), enableAudio: Bool = true, enableDispatchTimer: Bool = true, enableHealthKit: Bool = true) {
+    public init(
+        clock: Clock = SystemClock(),
+        workoutManager: WatchWorkoutManager = WatchWorkoutManager(),
+        hapticManager: WatchHapticManager = WatchHapticManager(),
+        voiceManager: WatchVoiceAnnouncementManager = WatchVoiceAnnouncementManager()
+    ) {
         self.clock = clock
-        self.soundManager = enableAudio ? SoundManager() : nil
-        self.healthKitManager = enableHealthKit ? HealthKitManager() : nil
-        self.voiceManager = enableAudio ? VoiceAnnouncementManager() : nil
-        self.enableDispatchTimer = enableDispatchTimer
+        self.workoutManager = workoutManager
+        self.hapticManager = hapticManager
+        self.voiceManager = voiceManager
         timeRemaining = runInterval.rawValue
+    }
+
+    // MARK: - HealthKit
+
+    /// Whether HealthKit is available
+    public var isHealthKitAvailable: Bool {
+        workoutManager.isHealthKitAvailable
+    }
+
+    /// Request HealthKit authorization
+    public func requestHealthKitAuthorization() async -> Bool {
+        await workoutManager.requestAuthorization()
     }
 
     // MARK: - Timer Controls
 
-    /// Starts or resumes the timer
+    /// Starts the timer (with 3-2-1 countdown on first start)
     public func start() {
         guard !isRunning, !isCountingDown else { return }
 
         let isFirstStart = !isActive
 
-        // Play 3-2-1 countdown only on first start, not on resume from pause
         if isFirstStart {
             isCountingDown = true
             countdownValue = 3
             showSummary = false
 
-            // Start countdown in a task - when complete, begin workout
             Task { @MainActor in
                 await playStartCountdown()
-                guard isCountingDown else { return }  // Check if cancelled during countdown
-                beginWorkout()
+                guard isCountingDown else { return }
+                await beginWorkout()
             }
         } else {
-            // Resume from pause - no countdown needed
             resumeWorkout()
         }
     }
 
-    /// Plays the 3-2-1 countdown with UI updates
+    /// Plays the 3-2-1 countdown with haptics
     private func playStartCountdown() async {
-        // Play 3... 2... 1... with UI updates
         for i in [3, 2, 1] {
-            guard isCountingDown else { return }  // Cancelled
+            guard isCountingDown else { return }
             countdownValue = i
-            soundManager?.playCountdownBeep(index: 3 - i)
+            hapticManager.playCountdownTick()
             try? await Task.sleep(for: .seconds(1.0))
         }
     }
 
-    /// Actually begins the workout after countdown
-    private func beginWorkout() {
+    /// Begins the workout after countdown
+    private func beginWorkout() async {
         isCountingDown = false
-        isRunning = true
-        isActive = true
 
-        // Fresh start - reset everything
+        // Start the HKWorkoutSession (critical for background)
+        await workoutManager.startWorkout(startDate: clock.now())
+
+        // Initialize timing
         accumulatedTimeBeforePause = 0
         totalTimeBeforePause = 0
         totalElapsedTime = 0
         workoutStartTime = clock.now()
         workoutStats = WorkoutStats()
         workoutStats.startTime = clock.now()
-        workoutStats.runIntervals = 1  // Starting with first run interval
+        workoutStats.runIntervals = 1
         previousTimeRemaining = runInterval.rawValue
 
-        // Record when this phase segment started
         phaseStartTime = clock.now()
 
-        // Play the RUN tone to signal workout has started
-        soundManager?.playSound(for: currentPhase)
-        voiceManager?.announce(phase: currentPhase)
+        // Play RUN haptic and voice
+        hapticManager.playPhaseTransition(to: currentPhase)
+        voiceManager.announce(phase: currentPhase)
 
-        // Create Timer for countdown updates
-        // (Disabled in unit tests where we manually call triggerTick)
-        if enableDispatchTimer {
-            startTimer()
-        }
+        startTimer()
     }
 
-    /// Resumes workout from pause (no countdown)
+    /// Resumes from pause
     private func resumeWorkout() {
-        isRunning = true
-        showSummary = false
-
-        // Record when this phase segment started
+        workoutManager.resumeWorkout()
         phaseStartTime = clock.now()
-
-        // Create Timer for countdown updates
-        if enableDispatchTimer {
-            startTimer()
-        }
+        startTimer()
     }
 
-    /// Creates and starts the Timer on the main RunLoop
+    /// Creates and starts the Timer
     private func startTimer() {
-        // Cancel any existing timer
         timer?.invalidate()
 
-        // Create a standard Timer on the main run loop
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.tick()
             }
         }
 
-        // Allow timer to fire even during scrolling/tracking
         if let timer = timer {
             RunLoop.main.add(timer, forMode: .common)
         }
+
+        isRunning = true
+        isActive = true
     }
 
     /// Pauses the timer
     public func pause() {
         guard isRunning else { return }
 
-        // Save accumulated time before pausing
         if let startTime = phaseStartTime {
             accumulatedTimeBeforePause += clock.now().timeIntervalSince(startTime)
         }
 
-        // Save total elapsed time before pausing
         if workoutStartTime != nil {
             totalTimeBeforePause = totalElapsedTime
         }
 
-        isRunning = false
+        workoutManager.pauseWorkout()
         timer?.invalidate()
         timer = nil
         phaseStartTime = nil
+        isRunning = false
     }
 
-    /// Stops and resets the timer (cancels the session)
-    /// Shows workout summary with stats and saves workout to HealthKit
+    /// Stops and ends the workout
     public func stop() {
-        // If cancelled during countdown, just reset (no summary)
         let wasCounting = isCountingDown
+        let wasActive = isActive
         isCountingDown = false
 
-        // Finalize workout stats before resetting (only if workout actually started)
-        if isActive && !wasCounting {
+        if wasActive && !wasCounting {
             workoutStats.endTime = clock.now()
             workoutStats.totalDuration = totalElapsedTime
             showSummary = true
 
-            // Save workout to HealthKit in background
-            let statsToSave = workoutStats
+            hapticManager.playWorkoutComplete()
+
+            // End workout and save to HealthKit
             Task {
-                workoutSavedToHealth = await healthKitManager?.saveWorkout(stats: statsToSave) ?? false
+                await workoutManager.endWorkout()
             }
+        } else {
+            workoutManager.discardWorkout()
         }
 
-        isRunning = false
         timer?.invalidate()
         timer = nil
         phaseStartTime = nil
         accumulatedTimeBeforePause = 0
         totalTimeBeforePause = 0
         workoutStartTime = nil
-
-        isActive = false
         currentPhase = .run
         timeRemaining = runInterval.rawValue
+        isRunning = false
+        isActive = false
     }
 
-    /// Dismisses the workout summary and resets stats
+    /// Dismisses the workout summary
     public func dismissSummary() {
         showSummary = false
         workoutStats = WorkoutStats()
         totalElapsedTime = 0
-        workoutSavedToHealth = false
-    }
-
-    // MARK: - HealthKit
-
-    /// Whether HealthKit is available on this device
-    public var isHealthKitAvailable: Bool {
-        healthKitManager?.isAvailable ?? false
-    }
-
-    /// Whether the user has authorized HealthKit access
-    public var isHealthKitAuthorized: Bool {
-        healthKitManager?.isAuthorized ?? false
-    }
-
-    /// Requests HealthKit authorization from the user
-    public func requestHealthKitAuthorization() async {
-        await healthKitManager?.requestAuthorization()
     }
 
     // MARK: - Private Methods
 
-    /// Called every second to update the timer
-    /// Uses timestamp-based calculation for accuracy even after background execution
     private func tick() {
         guard isRunning, let startTime = phaseStartTime else { return }
 
-        // Calculate elapsed time from timestamps (reliable even in background)
         let elapsedSinceStart = clock.now().timeIntervalSince(startTime)
         let totalElapsed = accumulatedTimeBeforePause + elapsedSinceStart
 
-        // Update total workout elapsed time
+        // Update total workout time
         if let workoutStart = workoutStartTime {
-            totalElapsedTime = totalTimeBeforePause + clock.now().timeIntervalSince(workoutStart) - totalTimeBeforePause
-            // Simplified: just track from pause resume point
             if totalTimeBeforePause > 0 {
                 totalElapsedTime = totalTimeBeforePause + elapsedSinceStart
             } else {
@@ -345,15 +298,13 @@ public final class IntervalTimer {
         let remaining = intervalDuration - totalElapsed
 
         if remaining <= 0 {
-            // Phase complete - switch to next phase
             switchPhase()
         } else {
-            // Update remaining time (ceiling to show "1" until it actually hits 0)
             let newTimeRemaining = Int(ceil(remaining))
 
-            // Play countdown tick (audio beep + haptic) at 3, 2, 1 seconds
+            // Haptic warning at 3, 2, 1 seconds
             if newTimeRemaining <= 3 && newTimeRemaining < previousTimeRemaining && newTimeRemaining > 0 {
-                soundManager?.playCountdownTick(secondsRemaining: newTimeRemaining)
+                hapticManager.playIntervalWarning(secondsRemaining: newTimeRemaining)
             }
 
             previousTimeRemaining = newTimeRemaining
@@ -361,31 +312,24 @@ public final class IntervalTimer {
         }
     }
 
-    /// Manually trigger a tick - exposed for testing
-    public func triggerTick() {
-        tick()
-    }
-
     /// Switches between run and walk phases
     private func switchPhase() {
         currentPhase = currentPhase.next
 
-        // Track interval counts
         if currentPhase == .run {
             workoutStats.runIntervals += 1
         } else {
             workoutStats.walkIntervals += 1
         }
 
-        // Reset timing for new phase
         phaseStartTime = clock.now()
         accumulatedTimeBeforePause = 0
         timeRemaining = currentInterval.rawValue
         previousTimeRemaining = currentInterval.rawValue
 
-        // Play sound and voice for new phase
-        soundManager?.playSound(for: currentPhase)
-        voiceManager?.announce(phase: currentPhase)
+        // Play phase transition haptic and voice
+        hapticManager.playPhaseTransition(to: currentPhase)
+        voiceManager.announce(phase: currentPhase)
     }
 
     // MARK: - Computed Properties

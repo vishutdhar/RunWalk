@@ -1,0 +1,39 @@
+// WatchShared.xcconfig
+// Build settings for RunWalk Watch App
+
+// Bundle Identifier
+PRODUCT_BUNDLE_IDENTIFIER = com.vishutdhar.RunWalk.watchkitapp
+
+// Version - keep in sync with iOS app
+MARKETING_VERSION = 1.4
+CURRENT_PROJECT_VERSION = 1
+
+// Deployment Target
+WATCHOS_DEPLOYMENT_TARGET = 10.0
+
+// This is a standalone watch app (not a companion app)
+WK_RUNS_INDEPENDENTLY_OF_COMPANION_APP = YES
+
+// Entitlements
+CODE_SIGN_ENTITLEMENTS = Config/RunWalkWatch.entitlements
+
+// Product Name
+PRODUCT_NAME = RunWalk Watch App
+
+// Code Signing
+DEVELOPMENT_TEAM = DABJS94K9F
+CODE_SIGN_STYLE = Automatic
+
+// Swift Settings
+SWIFT_VERSION = 6.0
+SWIFT_STRICT_CONCURRENCY = complete
+
+// Asset Catalog
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
+
+// Info.plist
+GENERATE_INFOPLIST_FILE = YES
+INFOPLIST_KEY_WKApplication = YES
+INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.vishutdhar.RunWalk
+INFOPLIST_KEY_CFBundleDisplayName = RunWalk

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1630"
+   LastUpgradeVersion = "2620"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -18,6 +18,20 @@
                BlueprintIdentifier = "8B41F6442DEDD0D5001A66F9"
                BuildableName = "RunWalk.app"
                BlueprintName = "RunWalk"
+               ReferencedContainer = "container:RunWalk.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "8BWATCH0052DF0001001A66F9"
+               BuildableName = "RunWalk Watch App.app"
+               BlueprintName = "RunWalk Watch App"
                ReferencedContainer = "container:RunWalk.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>

@@ -1,13 +1,13 @@
 import SwiftUI
 import SwiftData
-import RunWalkFeature
+import RunWalkWatchFeature
+import RunWalkShared
 
 @main
-struct RunWalkApp: App {
+struct RunWalkWatchApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .preferredColorScheme(.dark)
+            WatchContentView()
         }
         .modelContainer(for: WorkoutRecord.self)
     }

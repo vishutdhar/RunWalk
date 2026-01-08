@@ -9,8 +9,8 @@
 PRODUCT_NAME = RunWalk
 PRODUCT_DISPLAY_NAME = RunWalk
 PRODUCT_BUNDLE_IDENTIFIER = com.vishutdhar.RunWalk
-MARKETING_VERSION = 1.1
-CURRENT_PROJECT_VERSION = 2
+MARKETING_VERSION = 1.4
+CURRENT_PROJECT_VERSION = 1
 
 // ==========================================
 // Platform Configuration
@@ -32,6 +32,13 @@ INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationLand
 // ==========================================
 // Enable audio playback in background so timer sounds work when phone is locked
 INFOPLIST_KEY_UIBackgroundModes = audio
+
+// ==========================================
+// HealthKit
+// ==========================================
+// Required usage descriptions for HealthKit access
+INFOPLIST_KEY_NSHealthShareUsageDescription = RunWalk reads your workout data to show your exercise history and help you track progress over time.
+INFOPLIST_KEY_NSHealthUpdateUsageDescription = RunWalk saves your run-walk interval workouts to Apple Health so they contribute to your Activity Rings and workout history.
 
 // ==========================================
 // Code Signing

@@ -1,14 +1,39 @@
 # Privacy Policy for RunWalk
 
-**Last Updated: January 5, 2025**
+**Last Updated: January 8, 2026**
 
 ## Overview
 
-RunWalk ("the App") is a simple interval timer designed for run-walk training. Your privacy is important to us, and we want to be transparent about our data practices.
+RunWalk ("the App") is a run-walk interval timer for iOS and watchOS. Your privacy is important to us, and we want to be transparent about our data practices.
 
-## Data Collection
+## HealthKit Integration
 
-**We do not collect any personal data.**
+RunWalk integrates with Apple HealthKit to enhance your workout experience. With your explicit permission, the App may:
+
+**Write to HealthKit:**
+- Workout sessions (run-walk interval workouts)
+- Workout duration and activity type
+- Active energy burned (calculated automatically during watchOS workouts)
+
+**Read from HealthKit:**
+- Your workout history (to display your past run-walk sessions)
+
+### How We Use HealthKit Data
+
+- **Save Workouts:** Completed workouts are saved to Apple Health so they contribute to your Activity Rings and workout history
+- **Display History:** We read your workout data to show past run-walk sessions within the App
+
+### HealthKit Data Protection
+
+- All HealthKit data is protected by Apple's security framework
+- HealthKit data remains on your device and within Apple's Health ecosystem
+- We do NOT transmit HealthKit data to any servers
+- We do NOT share HealthKit data with third parties
+- We do NOT use HealthKit data for advertising or marketing
+
+## Other Data Collection
+
+**We do not collect any other personal data.**
 
 The App:
 - Does NOT collect personal information
@@ -21,7 +46,22 @@ The App:
 
 ## Data Storage
 
-All app settings (such as your selected interval duration) are stored locally on your device only. This data never leaves your device and is not accessible to us or any third parties.
+All app settings (such as your selected interval durations) are stored locally on your device only. This data never leaves your device and is not accessible to us or any third parties.
+
+## Managing Your Data
+
+### HealthKit Permissions
+
+You can manage the App's access to HealthKit at any time:
+1. Open **Settings** on your iPhone
+2. Tap **Health** > **Data Access & Devices**
+3. Tap **RunWalk**
+4. Toggle permissions on or off
+
+### Deleting Your Data
+
+- **Workout Data:** Delete workouts directly from the Apple Health app
+- **App Preferences:** Uninstalling the App removes all locally stored settings
 
 ## Third-Party Services
 
@@ -29,7 +69,7 @@ The App does not integrate with any third-party services, SDKs, or analytics pla
 
 ## Children's Privacy
 
-The App does not collect any data from anyone, including children under the age of 13.
+The App does not knowingly collect data from children under the age of 13. HealthKit access requires explicit user consent.
 
 ## Changes to This Policy
 
