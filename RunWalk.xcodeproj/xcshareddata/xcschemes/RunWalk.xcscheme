@@ -44,14 +44,21 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <TestPlans>
          <TestPlanReference
-            reference = "container:RunWalk.xctestplan">
-         </TestPlanReference>
-         <TestPlanReference
             reference = "container:RunWalk/RunWalk.xctestplan"
             default = "YES">
          </TestPlanReference>
       </TestPlans>
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "RunWalkFeatureTests"
+               BuildableName = "RunWalkFeatureTests"
+               BlueprintName = "RunWalkFeatureTests"
+               ReferencedContainer = "container:RunWalkPackage">
+            </BuildableReference>
+         </TestableReference>
          <TestableReference
             skipped = "NO">
             <BuildableReference

@@ -45,11 +45,10 @@ let package = Package(
             dependencies: ["RunWalkShared"],
             path: "Sources/RunWalkWatchFeature"
         ),
-        // Tests (run via Xcode on iOS Simulator: Product > Test)
+        // Tests for shared code (runs on macOS with swift test or in Xcode)
         .testTarget(
             name: "RunWalkFeatureTests",
             dependencies: [
-                "RunWalkFeature",
                 "RunWalkShared"
             ]
         ),
