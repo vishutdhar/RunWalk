@@ -83,6 +83,7 @@ public final class WatchIntervalTimer {
     private let workoutManager: WatchWorkoutManager
     private let hapticManager: WatchHapticManager
     private let voiceManager: WatchVoiceAnnouncementManager
+    private let stateManager = SharedWorkoutStateManager.shared
 
     /// Whether voice announcements are enabled (set from UI)
     public var voiceAnnouncementsEnabled: Bool = false {
@@ -216,6 +217,9 @@ public final class WatchIntervalTimer {
 
         isRunning = true
         isActive = true
+
+        // Sync initial state to widget
+        syncStateToWidget()
     }
 
     /// Pauses the timer
@@ -268,6 +272,9 @@ public final class WatchIntervalTimer {
         timeRemaining = runInterval.rawValue
         isRunning = false
         isActive = false
+
+        // Clear widget state so it shows idle
+        clearWidgetState()
     }
 
     /// Dismisses the workout summary
@@ -309,6 +316,9 @@ public final class WatchIntervalTimer {
 
             previousTimeRemaining = newTimeRemaining
             timeRemaining = newTimeRemaining
+
+            // Sync state to widget for live updates
+            syncStateToWidget()
         }
     }
 
@@ -330,6 +340,9 @@ public final class WatchIntervalTimer {
         // Play phase transition haptic and voice
         hapticManager.playPhaseTransition(to: currentPhase)
         voiceManager.announce(phase: currentPhase)
+
+        // Sync new phase to widget
+        syncStateToWidget()
     }
 
     // MARK: - Computed Properties
@@ -347,5 +360,26 @@ public final class WatchIntervalTimer {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return String(format: "%d:%02d", minutes, seconds)
+    }
+
+    // MARK: - Widget State Sync
+
+    /// Syncs current workout state to shared storage for widget complications
+    private func syncStateToWidget() {
+        let state = SharedWorkoutState(
+            isActive: isActive,
+            currentPhase: currentPhase.rawValue,
+            timeRemaining: timeRemaining,
+            intervalDuration: currentInterval.rawValue,
+            lastUpdate: clock.now(),
+            runIntervalSetting: runInterval.rawValue,
+            walkIntervalSetting: walkInterval.rawValue
+        )
+        stateManager.writeState(state)
+    }
+
+    /// Clears widget state when workout ends
+    private func clearWidgetState() {
+        stateManager.clearState()
     }
 }

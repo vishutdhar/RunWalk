@@ -1,0 +1,38 @@
+// WidgetExtension.xcconfig
+// Build settings for RunWalk Watch Complications Widget Extension
+
+// Bundle Identifier - must be prefixed by watch app bundle ID
+PRODUCT_BUNDLE_IDENTIFIER = com.vishutdhar.RunWalk.watchkitapp.complications
+
+// Version - keep in sync with watch app
+MARKETING_VERSION = 1.4
+CURRENT_PROJECT_VERSION = 1
+
+// Deployment Target - same as watch app
+WATCHOS_DEPLOYMENT_TARGET = 10.0
+
+// Entitlements
+CODE_SIGN_ENTITLEMENTS = Config/RunWalkWidgetExtension.entitlements
+
+// Product Name
+PRODUCT_NAME = RunWalk Complications
+
+// Code Signing
+DEVELOPMENT_TEAM = DABJS94K9F
+CODE_SIGN_STYLE = Automatic
+
+// Swift Settings
+SWIFT_VERSION = 6.0
+SWIFT_STRICT_CONCURRENCY = complete
+
+// WidgetKit specific
+ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground
+ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
+
+// Info.plist generation
+GENERATE_INFOPLIST_FILE = YES
+INFOPLIST_KEY_CFBundleDisplayName = RunWalk
+INFOPLIST_KEY_NSHumanReadableCopyright =
+
+// Skip install for extension
+SKIP_INSTALL = YES

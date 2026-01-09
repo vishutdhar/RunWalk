@@ -11,9 +11,18 @@ public struct WatchContentView: View {
 
     // MARK: - State
 
-    @State private var timer = WatchIntervalTimer()
+    /// The interval timer - can be injected externally for deep link support
+    @State private var timer: WatchIntervalTimer
     @State private var showHistory = false
     @State private var showSettings = false
+
+    // MARK: - Initialization
+
+    /// Creates a WatchContentView with an optional external timer
+    /// - Parameter timer: Optional timer instance. If nil, creates a new one.
+    public init(timer: WatchIntervalTimer? = nil) {
+        _timer = State(initialValue: timer ?? WatchIntervalTimer())
+    }
 
     /// Voice announcements setting (persisted)
     @AppStorage("voiceAnnouncementsEnabled") private var voiceEnabled = false
@@ -242,9 +251,6 @@ public struct WatchContentView: View {
         }
     }
 
-    // MARK: - Initialization
-
-    public init() {}
 }
 
 // MARK: - Interval Picker View

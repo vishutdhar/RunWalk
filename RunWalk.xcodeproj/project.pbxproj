@@ -7,10 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		03B5C7EC7598BE14F50DC850 /* CornerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92EB232A9B01F53077CA487F /* CornerView.swift */; };
+		17EF284249D4F6BE4CC78801 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3E41000B99F56854BB299D4B /* Assets.xcassets */; };
+		3A70DB3139E9FAA355AB80C6 /* RunWalkComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB5179C47BFBC130E78E7566 /* RunWalkComplication.swift */; };
+		4A8ADACF578CA0C1DBC77322 /* InlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53BFF61A4854683B2126F57C /* InlineView.swift */; };
+		5BB9C939AD3F1468E29160F1 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3F174312C1C5FE49B63F299A /* Foundation.framework */; };
+		8522419873FB5959A855C799 /* CircularView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7EDE64BD35BB441B9D55EF /* CircularView.swift */; };
 		8B41F6832DEDD23B001A66F9 /* RunWalkFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6822DEDD23B001A66F9 /* RunWalkFeature */; };
 		8B41F6852DEDD25C001A66F9 /* RunWalkFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6842DEDD25C001A66F9 /* RunWalkFeature */; };
-		8BWATCH0012DF0001001A66F9 /* RunWalkWatchFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8BWATCH0022DF0001001A66F9 /* RunWalkWatchFeature */; };
 		8BEMBED0012DF0001001A66F9 /* RunWalk Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 8BWATCH0032DF0001001A66F9 /* RunWalk Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8BWATCH0012DF0001001A66F9 /* RunWalkWatchFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8BWATCH0022DF0001001A66F9 /* RunWalkWatchFeature */; };
+		9B4390E3691CF37191AFE049 /* RunWalk Complications.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 342AB6A2F06EAF8F81290F8F /* RunWalk Complications.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C4FFE09557A0104CC7CC7614 /* RectangularView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14252A964B8D348EFECAA572 /* RectangularView.swift */; };
+		DAF603836F13412C7CFB9E1E /* ComplicationTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35CA442AB5A228933230EBCE /* ComplicationTimelineProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -28,6 +37,13 @@
 			remoteGlobalIDString = 8BWATCH0052DF0001001A66F9;
 			remoteInfo = "RunWalk Watch App";
 		};
+		BFECE59511DBE2C940A37657 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8B41F63D2DEDD0D5001A66F9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9643CB543CFE8493071CDB2C;
+			remoteInfo = "RunWalk Complications";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -42,12 +58,32 @@
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EBAD4579C3B11F0136CDEE53 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				9B4390E3691CF37191AFE049 /* RunWalk Complications.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		14252A964B8D348EFECAA572 /* RectangularView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RectangularView.swift; sourceTree = "<group>"; };
+		342AB6A2F06EAF8F81290F8F /* RunWalk Complications.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "RunWalk Complications.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		35CA442AB5A228933230EBCE /* ComplicationTimelineProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ComplicationTimelineProvider.swift; sourceTree = "<group>"; };
+		3E41000B99F56854BB299D4B /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3F174312C1C5FE49B63F299A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		53BFF61A4854683B2126F57C /* InlineView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InlineView.swift; sourceTree = "<group>"; };
 		8B41F6452DEDD0D5001A66F9 /* RunWalk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RunWalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B41F65C2DEDD0D6001A66F9 /* RunWalk.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunWalk.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8BWATCH0032DF0001001A66F9 /* RunWalk Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "RunWalk Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		92EB232A9B01F53077CA487F /* CornerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CornerView.swift; sourceTree = "<group>"; };
+		CF7EDE64BD35BB441B9D55EF /* CircularView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CircularView.swift; sourceTree = "<group>"; };
+		EB5179C47BFBC130E78E7566 /* RunWalkComplication.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RunWalkComplication.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -94,6 +130,8 @@
 		};
 		8B41F65F2DEDD0D6001A66F9 /* RunWalkUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = RunWalkUITests;
 			sourceTree = "<group>";
 		};
@@ -108,12 +146,22 @@
 		};
 		8BWATCH0062DF0001001A66F9 /* RunWalk Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "RunWalk Watch App";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		195F7EE887D4CECDA64DE0CA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5BB9C939AD3F1468E29160F1 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B41F6422DEDD0D5001A66F9 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -141,6 +189,26 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		001184D9BDB5ED7187B822C4 /* watchOS */ = {
+			isa = PBXGroup;
+			children = (
+				3F174312C1C5FE49B63F299A /* Foundation.framework */,
+			);
+			name = watchOS;
+			sourceTree = "<group>";
+		};
+		22FDA8789D6D2E0F87BA08DD /* ComplicationViews */ = {
+			isa = PBXGroup;
+			children = (
+				CF7EDE64BD35BB441B9D55EF /* CircularView.swift */,
+				92EB232A9B01F53077CA487F /* CornerView.swift */,
+				14252A964B8D348EFECAA572 /* RectangularView.swift */,
+				53BFF61A4854683B2126F57C /* InlineView.swift */,
+			);
+			name = ComplicationViews;
+			path = ComplicationViews;
+			sourceTree = "<group>";
+		};
 		8B41F63C2DEDD0D5001A66F9 = {
 			isa = PBXGroup;
 			children = (
@@ -150,6 +218,7 @@
 				8B41F65F2DEDD0D6001A66F9 /* RunWalkUITests */,
 				8B41F6812DEDD23B001A66F9 /* Frameworks */,
 				8B41F6462DEDD0D5001A66F9 /* Products */,
+				EF7A86D8367EB2B83694ED02 /* RunWalk Complications */,
 			);
 			sourceTree = "<group>";
 		};
@@ -159,6 +228,7 @@
 				8B41F6452DEDD0D5001A66F9 /* RunWalk.app */,
 				8B41F65C2DEDD0D6001A66F9 /* RunWalk.xctest */,
 				8BWATCH0032DF0001001A66F9 /* RunWalk Watch App.app */,
+				342AB6A2F06EAF8F81290F8F /* RunWalk Complications.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -166,8 +236,21 @@
 		8B41F6812DEDD23B001A66F9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				001184D9BDB5ED7187B822C4 /* watchOS */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		EF7A86D8367EB2B83694ED02 /* RunWalk Complications */ = {
+			isa = PBXGroup;
+			children = (
+				22FDA8789D6D2E0F87BA08DD /* ComplicationViews */,
+				EB5179C47BFBC130E78E7566 /* RunWalkComplication.swift */,
+				35CA442AB5A228933230EBCE /* ComplicationTimelineProvider.swift */,
+				3E41000B99F56854BB299D4B /* Assets.xcassets */,
+			);
+			name = "RunWalk Complications";
+			path = "RunWalk Complications";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -230,10 +313,12 @@
 				8BWATCH0092DF0001001A66F9 /* Sources */,
 				8BWATCH0072DF0001001A66F9 /* Frameworks */,
 				8BWATCH00A2DF0001001A66F9 /* Resources */,
+				EBAD4579C3B11F0136CDEE53 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E899572B1347E0BFA149A3D6 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				8BD71C052DEE41D800CEDD92 /* Config */,
@@ -246,6 +331,23 @@
 			productName = "RunWalk Watch App";
 			productReference = 8BWATCH0032DF0001001A66F9 /* RunWalk Watch App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		9643CB543CFE8493071CDB2C /* RunWalk Complications */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 74332F4D8E510923F354AA4D /* Build configuration list for PBXNativeTarget "RunWalk Complications" */;
+			buildPhases = (
+				177BAC6F4C015B3E66DDF9D9 /* Sources */,
+				195F7EE887D4CECDA64DE0CA /* Frameworks */,
+				F10F43F3CD5F4D54A8896DBE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "RunWalk Complications";
+			productName = "RunWalk Complications";
+			productReference = 342AB6A2F06EAF8F81290F8F /* RunWalk Complications.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -278,17 +380,18 @@
 			);
 			mainGroup = 8B41F63C2DEDD0D5001A66F9;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
-			productRefGroup = 8B41F6462DEDD0D5001A66F9 /* Products */;
 			packageReferences = (
 				8BPKG00012DF0001001A66F9 /* XCLocalSwiftPackageReference "RunWalkPackage" */,
 			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 8B41F6462DEDD0D5001A66F9 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				8B41F6442DEDD0D5001A66F9 /* RunWalk */,
 				8BWATCH0052DF0001001A66F9 /* RunWalk Watch App */,
 				8B41F65B2DEDD0D6001A66F9 /* RunWalkUITests */,
+				9643CB543CFE8493071CDB2C /* RunWalk Complications */,
 			);
 		};
 /* End PBXProject section */
@@ -315,9 +418,30 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F10F43F3CD5F4D54A8896DBE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				17EF284249D4F6BE4CC78801 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		177BAC6F4C015B3E66DDF9D9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3A70DB3139E9FAA355AB80C6 /* RunWalkComplication.swift in Sources */,
+				DAF603836F13412C7CFB9E1E /* ComplicationTimelineProvider.swift in Sources */,
+				8522419873FB5959A855C799 /* CircularView.swift in Sources */,
+				03B5C7EC7598BE14F50DC850 /* CornerView.swift in Sources */,
+				C4FFE09557A0104CC7CC7614 /* RectangularView.swift in Sources */,
+				4A8ADACF578CA0C1DBC77322 /* InlineView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B41F6412DEDD0D5001A66F9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -352,9 +476,50 @@
 			target = 8BWATCH0052DF0001001A66F9 /* RunWalk Watch App */;
 			targetProxy = 8BEMBED0032DF0001001A66F9 /* PBXContainerItemProxy */;
 		};
+		E899572B1347E0BFA149A3D6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "RunWalk Complications";
+			target = 9643CB543CFE8493071CDB2C /* RunWalk Complications */;
+			targetProxy = BFECE59511DBE2C940A37657 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		0B38E562A476248A6510948F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = Config/RunWalkWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DABJS94K9F;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "RunWalk Complications/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = RunWalk;
+				INFOPLIST_KEY_NSExtension = "$(EXTENSION_SAFE_API_ONLY)";
+				INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = "com.apple.widgetkit-extension";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.4;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vishutdhar.RunWalk.watchkitapp.complications;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Release;
+		};
 		8B41F6642DEDD0D6001A66F9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -619,9 +784,52 @@
 			};
 			name = Release;
 		};
+		F6228263B4162D5F719C07F6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = Config/RunWalkWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DABJS94K9F;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "RunWalk Complications/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = RunWalk;
+				INFOPLIST_KEY_NSExtension = "$(EXTENSION_SAFE_API_ONLY)";
+				INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = "com.apple.widgetkit-extension";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.4;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vishutdhar.RunWalk.watchkitapp.complications;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		74332F4D8E510923F354AA4D /* Build configuration list for PBXNativeTarget "RunWalk Complications" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0B38E562A476248A6510948F /* Release */,
+				F6228263B4162D5F719C07F6 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		8B41F6402DEDD0D5001A66F9 /* Build configuration list for PBXProject "RunWalk" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -660,6 +868,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		8BPKG00012DF0001001A66F9 /* XCLocalSwiftPackageReference "RunWalkPackage" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = RunWalkPackage;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		8B41F6822DEDD23B001A66F9 /* RunWalkFeature */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -677,13 +892,6 @@
 			productName = RunWalkWatchFeature;
 		};
 /* End XCSwiftPackageProductDependency section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		8BPKG00012DF0001001A66F9 /* XCLocalSwiftPackageReference "RunWalkPackage" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = RunWalkPackage;
-		};
-/* End XCLocalSwiftPackageReference section */
 	};
 	rootObject = 8B41F63D2DEDD0D5001A66F9 /* Project object */;
 }
