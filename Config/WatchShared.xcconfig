@@ -5,8 +5,8 @@
 PRODUCT_BUNDLE_IDENTIFIER = com.vishutdhar.RunWalk.watchkitapp
 
 // Version - keep in sync with iOS app
-MARKETING_VERSION = 1.4
-CURRENT_PROJECT_VERSION = 1
+MARKETING_VERSION = 1.5
+CURRENT_PROJECT_VERSION = 2
 
 // Deployment Target
 WATCHOS_DEPLOYMENT_TARGET = 10.0

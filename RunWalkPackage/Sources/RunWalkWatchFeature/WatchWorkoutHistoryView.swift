@@ -54,7 +54,9 @@ public struct WatchWorkoutHistoryView: View {
     private var workoutListView: some View {
         List {
             ForEach(workouts) { workout in
-                WatchWorkoutRowView(workout: workout)
+                NavigationLink(destination: WatchWorkoutDetailView(workout: workout)) {
+                    WatchWorkoutRowView(workout: workout)
+                }
             }
             .onDelete(perform: deleteWorkouts)
         }
@@ -80,44 +82,60 @@ struct WatchWorkoutRowView: View {
     let workout: WorkoutRecord
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Date and time
-            Text(workout.shortDate)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
+        HStack(spacing: 8) {
+            // Route map thumbnail (if available)
+            if let routeData = workout.routeData, workout.hasRoute {
+                WatchCompactMapView(routeData: routeData)
+                    .frame(width: 40, height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
 
-            // Duration - prominent
-            Text(workout.formattedDuration)
-                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                .monospacedDigit()
+            VStack(alignment: .leading, spacing: 4) {
+                // Date and time
+                Text(workout.shortDate)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
 
-            // Interval counts
-            HStack(spacing: 10) {
-                // Run intervals
-                HStack(spacing: 3) {
-                    Circle()
-                        .fill(Color.orange)
-                        .frame(width: 6, height: 6)
-                    Text("\(workout.runIntervals)")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundStyle(.orange)
-                }
+                // Duration - prominent
+                Text(workout.formattedDuration)
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
 
-                // Walk intervals
-                HStack(spacing: 3) {
-                    Circle()
-                        .fill(Color.green)
-                        .frame(width: 6, height: 6)
-                    Text("\(workout.walkIntervals)")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundStyle(.green)
-                }
+                // Interval counts and distance
+                HStack(spacing: 10) {
+                    // Run intervals
+                    HStack(spacing: 3) {
+                        Circle()
+                            .fill(Color.orange)
+                            .frame(width: 6, height: 6)
+                        Text("\(workout.runIntervals)")
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundStyle(.orange)
+                    }
 
-                // HealthKit indicator
-                if workout.savedToHealthKit {
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.pink)
+                    // Walk intervals
+                    HStack(spacing: 3) {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 6, height: 6)
+                        Text("\(workout.walkIntervals)")
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundStyle(.green)
+                    }
+
+                    // Distance (if GPS was enabled)
+                    if workout.hasDistance {
+                        Text(workout.shortFormattedDistance)
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundStyle(.blue)
+                    }
+
+                    // HealthKit indicator
+                    if workout.savedToHealthKit {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.pink)
+                    }
                 }
             }
         }

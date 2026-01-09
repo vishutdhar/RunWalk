@@ -70,6 +70,9 @@ public struct WatchRouteMapView: View {
         }
         .mapStyle(.standard)
         .mapControls { }  // No controls on watch - too small
+        // Disable map interaction during live tracking so swipe gestures
+        // pass through to TabView for page navigation
+        .allowsHitTesting(!isLive)
         .onAppear {
             updateCameraPosition()
         }

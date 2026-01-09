@@ -33,8 +33,8 @@ public struct WatchContentView: View {
     /// Haptics setting (persisted)
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
 
-    /// GPS tracking setting (persisted)
-    @AppStorage("gpsTrackingEnabled") private var gpsTrackingEnabled = false
+    /// GPS tracking setting (persisted) - ON by default for route tracking
+    @AppStorage("gpsTrackingEnabled") private var gpsTrackingEnabled = true
 
     /// GPS accuracy mode (persisted)
     @AppStorage("gpsAccuracyMode") private var gpsAccuracyMode: GPSAccuracyMode = .balanced

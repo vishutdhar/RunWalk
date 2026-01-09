@@ -1,6 +1,6 @@
 # RunWalk Project Overview
 
-## Current Version: 1.4
+## Current Version: 1.5
 
 RunWalk is a run-walk interval timer for **iOS and watchOS**. It uses **Swift 6.1+** and **SwiftUI** with a shared codebase architecture.
 
@@ -73,16 +73,19 @@ RunWalk/
 
 ---
 
-## Current Features (v1.4)
+## Current Features (v1.5)
 
 ### iOS App
 - 6 interval options (30s, 1min, 1.5min, 2min, 3min, 5min)
 - Voice announcements ("Run" / "Walk")
 - Bell sounds on phase transitions
 - Haptic feedback
-- Settings: Voice toggle, Bells toggle, Haptics toggle
+- Settings: Voice toggle, Bells toggle, Haptics toggle, GPS toggle
 - HealthKit workout saving
-- Workout history view
+- Workout history with detail view
+- **GPS route tracking** with live map display
+- **Route maps in workout history** (thumbnail + full map)
+- **Distance tracking** with pace calculation
 - Dark theme, works with screen locked
 
 ### Apple Watch App
@@ -91,9 +94,12 @@ RunWalk/
 - HKWorkoutSession for background execution
 - Distinct haptic patterns (run vs walk)
 - Voice announcements
-- Settings: Voice toggle, Bells toggle, Haptics toggle
+- Settings: Voice toggle, Bells toggle, Haptics toggle, GPS toggle
 - Workout summary view
-- Workout history
+- Workout history with detail view
+- **GPS route tracking** with live map display
+- **Route maps in workout history**
+- **Distance tracking**
 - Counts toward Activity Rings
 
 ---
@@ -228,7 +234,6 @@ screenshot()
 - Siri shortcuts
 - iOS widgets
 - Heart rate zone integration
-- GPS tracking for outdoor runs
 - Statistics and progress tracking
 - Audio coaching messages
 
@@ -238,6 +243,7 @@ screenshot()
 
 | Version | Features |
 |---------|----------|
+| 1.5 | GPS route tracking, live maps, distance tracking, workout detail view |
 | 1.4 | Apple Watch app, Bells/Haptics settings toggles |
 | 1.3 | Workout history, HealthKit saving |
 | 1.2 | Settings view, Voice toggle |

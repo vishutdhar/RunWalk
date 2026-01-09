@@ -58,8 +58,10 @@ public struct WorkoutHistoryView: View {
             ForEach(groupedWorkouts, id: \.0) { date, dayWorkouts in
                 Section {
                     ForEach(dayWorkouts) { workout in
-                        WorkoutRowView(workout: workout)
-                            .listRowBackground(Color.white.opacity(0.08))
+                        NavigationLink(destination: WorkoutDetailView(workout: workout)) {
+                            WorkoutRowView(workout: workout)
+                        }
+                        .listRowBackground(Color.white.opacity(0.08))
                     }
                     .onDelete { indexSet in
                         deleteWorkouts(dayWorkouts: dayWorkouts, at: indexSet)
@@ -147,10 +149,28 @@ struct WorkoutRowView: View {
                             .font(.system(size: 13, weight: .medium, design: .rounded))
                             .foregroundStyle(.secondary)
                     }
+
+                    // Distance (if GPS was enabled)
+                    if workout.hasDistance {
+                        HStack(spacing: 4) {
+                            Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                                .font(.system(size: 10))
+                            Text(workout.shortFormattedDistance)
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                        }
+                        .foregroundStyle(.blue)
+                    }
                 }
             }
 
             Spacer()
+
+            // Route map thumbnail (if available)
+            if let routeData = workout.routeData, workout.hasRoute {
+                CompactRouteMapView(routeData: routeData)
+                    .frame(width: 60, height: 50)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
 
             // HealthKit indicator
             if workout.savedToHealthKit {
@@ -158,6 +178,7 @@ struct WorkoutRowView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.pink)
             }
+            // Note: NavigationLink automatically adds chevron disclosure indicator
         }
         .padding(.vertical, 8)
     }

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import MapKit
 import RunWalkShared
 
 /// Main view for the RunWalk interval timer app
@@ -15,6 +16,7 @@ public struct ContentView: View {
     @State private var selectedTab: Tab = .timer
     @State private var showRunCustomPicker = false
     @State private var showWalkCustomPicker = false
+    @State private var workoutPage: WorkoutPage = .timer
 
     /// Voice announcements setting (persisted)
     @AppStorage("voiceAnnouncementsEnabled") private var voiceEnabled = false
@@ -22,8 +24,8 @@ public struct ContentView: View {
     @AppStorage("bellsEnabled") private var bellsEnabled = true
     /// Haptics setting (persisted)
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
-    /// GPS tracking setting (persisted)
-    @AppStorage("gpsTrackingEnabled") private var gpsTrackingEnabled = false
+    /// GPS tracking setting (persisted) - ON by default for route tracking
+    @AppStorage("gpsTrackingEnabled") private var gpsTrackingEnabled = true
     /// GPS accuracy mode (persisted)
     @AppStorage("gpsAccuracyMode") private var gpsAccuracyMode: GPSAccuracyMode = .balanced
 
@@ -33,6 +35,12 @@ public struct ContentView: View {
         case timer = "RunWalk"
         case history = "History"
         case settings = "Settings"
+    }
+
+    /// Pages available during an active workout (swipeable)
+    enum WorkoutPage: Int, CaseIterable {
+        case timer = 0
+        case map = 1
     }
 
     // MARK: - Body
@@ -131,7 +139,13 @@ public struct ContentView: View {
         }
         .sheet(isPresented: .init(
             get: { timer.showSummary },
-            set: { if !$0 { timer.dismissSummary() } }
+            set: { if !$0 {
+                // Save workout to history when sheet is dismissed (handles swipe-dismiss)
+                // The guard in saveWorkoutToHistory prevents double-save since
+                // totalDuration becomes 0 after dismissSummary resets the data
+                saveWorkoutToHistory()
+                timer.dismissSummary()
+            } }
         )) {
             WorkoutSummaryView(
                 stats: timer.workoutStats,
@@ -147,7 +161,10 @@ public struct ContentView: View {
 
     private func saveWorkoutToHistory() {
         // Only save if we have valid workout data
-        guard timer.workoutStats.totalDuration > 0 else { return }
+        guard timer.workoutStats.totalDuration > 0 else {
+            print("[SaveWorkout] Skipped - totalDuration is 0")
+            return
+        }
 
         let record = WorkoutRecord(
             from: timer.workoutStats,
@@ -157,6 +174,14 @@ public struct ContentView: View {
         )
 
         modelContext.insert(record)
+
+        // Explicitly save to ensure persistence
+        do {
+            try modelContext.save()
+            print("[SaveWorkout] Saved workout: duration=\(record.duration)s, intervals=\(record.totalIntervals)")
+        } catch {
+            print("[SaveWorkout] Error saving: \(error)")
+        }
     }
 
     // MARK: - Countdown View (3-2-1 Before Starting)
@@ -341,8 +366,36 @@ public struct ContentView: View {
     }
 
     // MARK: - Running View (Timer Active)
+    // Uses swipeable pages: Timer (default) ←→ Live Map (when GPS enabled)
+    // Follows Apple's Workout app pattern of swipeable metric screens
 
     private var runningView: some View {
+        Group {
+            if gpsTrackingEnabled {
+                // Swipeable pages when GPS is enabled
+                TabView(selection: $workoutPage) {
+                    timerPageView
+                        .tag(WorkoutPage.timer)
+
+                    liveMapPageView
+                        .tag(WorkoutPage.map)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .automatic))
+                .indexViewStyle(.page(backgroundDisplayMode: .automatic))
+                .onAppear {
+                    // Reset to timer page when workout starts
+                    workoutPage = .timer
+                }
+            } else {
+                // Just the timer when GPS is disabled
+                timerPageView
+            }
+        }
+    }
+
+    // MARK: - Timer Page (Main workout display)
+
+    private var timerPageView: some View {
         VStack(spacing: 0) {
             // Total elapsed time at top
             HStack {
@@ -351,6 +404,15 @@ public struct ContentView: View {
                 Text(timer.formattedElapsedTime)
                     .font(.system(size: 17, weight: .medium, design: .rounded))
                     .monospacedDigit()
+
+                // GPS indicator when tracking
+                if gpsTrackingEnabled {
+                    Spacer()
+                        .frame(width: 12)
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.blue)
+                }
             }
             .foregroundStyle(.secondary)
             .padding(.top, 20)
@@ -400,6 +462,19 @@ public struct ContentView: View {
                 }
             }
 
+            // Distance indicator (when GPS enabled and has data)
+            if gpsTrackingEnabled && timer.currentRouteData.hasValidRoute {
+                HStack(spacing: 4) {
+                    Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                        .font(.system(size: 12))
+                    Text(timer.currentRouteData.formattedDistance)
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .monospacedDigit()
+                }
+                .foregroundStyle(.secondary)
+                .padding(.top, 12)
+            }
+
             Spacer()
 
             // Control buttons
@@ -439,8 +514,105 @@ public struct ContentView: View {
                 .buttonStyle(.plain)
             }
 
+            // Page hint (swipe for map)
+            if gpsTrackingEnabled {
+                HStack(spacing: 4) {
+                    Text("Swipe for map")
+                        .font(.system(size: 12, weight: .medium))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundStyle(.tertiary)
+                .padding(.top, 16)
+            }
+
             Spacer()
-                .frame(height: 60)
+                .frame(height: 40)
+        }
+    }
+
+    // MARK: - Live Map Page (GPS Route Display)
+
+    private var liveMapPageView: some View {
+        VStack(spacing: 0) {
+            // Header with phase and time
+            HStack {
+                // Phase pill
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(timer.currentPhase == .run ? Color.orange : Color.green)
+                        .frame(width: 8, height: 8)
+                    Text(timer.currentPhase.rawValue.uppercased())
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(timer.currentPhase == .run ? Color.orange : Color.green)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.1), in: Capsule())
+
+                Spacer()
+
+                // Time remaining
+                Text(timer.formattedTime)
+                    .font(.system(size: 24, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+
+            // Live map - wrapped to ensure swipe gestures pass through for page navigation
+            RouteMapView(
+                routeData: timer.currentRouteData,
+                isLive: true,
+                currentPhase: timer.currentPhase,
+                showDistance: true,
+                currentLocation: timer.currentLocation
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            // Ensure this area doesn't block page swipe gestures
+            .contentShape(Rectangle())
+            .allowsHitTesting(false)
+
+            // Control buttons (same as timer page for consistency)
+            HStack(spacing: 60) {
+                // Cancel button
+                Button(action: { timer.stop() }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(width: 70, height: 70)
+
+                        Text("Cancel")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                // Pause button
+                Button(action: {
+                    if timer.isRunning {
+                        timer.pause()
+                    } else {
+                        timer.start()
+                    }
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange)
+                            .frame(width: 70, height: 70)
+
+                        Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundStyle(.black)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.bottom, 20)
         }
     }
 

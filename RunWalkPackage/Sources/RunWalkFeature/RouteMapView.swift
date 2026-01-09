@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import CoreLocation
 import RunWalkShared
 
 /// Map view that displays a workout route using Apple Maps
@@ -19,6 +20,9 @@ public struct RouteMapView: View {
     /// Whether to show distance overlay
     var showDistance: Bool = true
 
+    /// Current location (for centering when route is empty during live tracking)
+    var currentLocation: CLLocation?
+
     // MARK: - State
 
     @State private var position: MapCameraPosition = .automatic
@@ -27,10 +31,43 @@ public struct RouteMapView: View {
 
     public var body: some View {
         ZStack(alignment: .bottomLeading) {
-            mapContent
+            if isLive && !routeData.hasValidRoute && currentLocation == nil {
+                // Show waiting message when GPS enabled but no data yet
+                waitingForGPSView
+            } else {
+                mapContent
+            }
 
             if showDistance && routeData.hasValidRoute {
                 distanceOverlay
+            }
+        }
+    }
+
+    // MARK: - Waiting for GPS View
+
+    private var waitingForGPSView: some View {
+        ZStack {
+            // Dark background
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.black.opacity(0.8))
+
+            VStack(spacing: 16) {
+                // Pulsing location icon
+                Image(systemName: "location.circle")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.blue)
+                    .symbolEffect(.pulse, options: .repeating)
+
+                Text("Acquiring GPS Signal...")
+                    .font(.system(size: 17, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white)
+
+                Text("Make sure you're outdoors with a clear view of the sky")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
             }
         }
     }
@@ -84,14 +121,26 @@ public struct RouteMapView: View {
         }
         .mapStyle(.standard(elevation: .realistic))
         .mapControls {
-            MapCompass()
-            MapScaleView()
+            // Only show controls when map is interactive (not live)
+            if !isLive {
+                MapCompass()
+                MapScaleView()
+            }
         }
+        // Disable map interaction during live tracking so swipe gestures
+        // pass through to TabView for page navigation
+        .allowsHitTesting(!isLive)
         .onAppear {
             updateCameraPosition()
         }
         .onChange(of: routeData.pointCount) { _, _ in
             if isLive {
+                updateCameraPosition()
+            }
+        }
+        .onChange(of: currentLocation?.coordinate.latitude) { _, _ in
+            if isLive && !routeData.hasValidRoute {
+                // Update position when we get first location but no route yet
                 updateCameraPosition()
             }
         }
@@ -122,14 +171,26 @@ public struct RouteMapView: View {
     }
 
     private func updateCameraPosition() {
-        if isLive, let current = routeData.endCoordinate {
-            // Follow current location during live tracking
-            position = .camera(MapCamera(
-                centerCoordinate: current,
-                distance: 500,  // 500 meter view distance
-                heading: 0,
-                pitch: 0
-            ))
+        if isLive {
+            // During live tracking, prefer route end coordinate, then current location
+            if let current = routeData.endCoordinate {
+                // Follow the route's current position
+                position = .camera(MapCamera(
+                    centerCoordinate: current,
+                    distance: 500,  // 500 meter view distance
+                    heading: 0,
+                    pitch: 0
+                ))
+            } else if let location = currentLocation {
+                // Route is empty but we have current location - center on it
+                position = .camera(MapCamera(
+                    centerCoordinate: location.coordinate,
+                    distance: 500,
+                    heading: 0,
+                    pitch: 0
+                ))
+            }
+            // If neither exists, the "Waiting for GPS" view is shown instead
         } else if let region = routeData.boundingRegion {
             // Show entire route for static view
             position = .region(MKCoordinateRegion(

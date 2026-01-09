@@ -43,10 +43,12 @@ public final class WorkoutRecord {
     public var routeDataEncoded: Data?
 
     /// Total distance in meters (from GPS tracking)
-    public var totalDistance: Double
+    /// Default to 0 for migration from old records without GPS
+    public var totalDistance: Double = 0
 
     /// Whether GPS tracking was enabled for this workout
-    public var gpsTrackingEnabled: Bool
+    /// Default to false for migration from old records without GPS
+    public var gpsTrackingEnabled: Bool = false
 
     // MARK: - Computed Properties
 
