@@ -42,7 +42,7 @@ struct WatchRunningView: View {
                         .contentTransition(.numericText(countsDown: true))
                         .animation(.linear(duration: 0.1), value: timer.timeRemaining)
 
-                    Text(timer.currentInterval.displayName)
+                    Text(timer.currentIntervalSelection.displayName)
                         .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
@@ -95,8 +95,8 @@ struct WatchRunningView: View {
     // MARK: - Computed Properties
 
     private var progress: Double {
-        let elapsed = Double(timer.currentInterval.rawValue - timer.timeRemaining)
-        return elapsed / Double(timer.currentInterval.rawValue)
+        let elapsed = Double(timer.currentIntervalSeconds - timer.timeRemaining)
+        return elapsed / Double(timer.currentIntervalSeconds)
     }
 }
 

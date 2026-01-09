@@ -35,5 +35,9 @@
 	<string>RunWalk reads your workout data to show your exercise history and track progress.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>RunWalk saves your run-walk interval workouts to Apple Health so they contribute to your Activity Rings.</string>
+
+	<!-- Location Usage Description - for GPS route tracking -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>RunWalk uses your location to track your running route and calculate distance during workouts.</string>
 </dict>
 </plist>

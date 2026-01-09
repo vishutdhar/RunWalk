@@ -33,6 +33,12 @@ public struct WatchContentView: View {
     /// Haptics setting (persisted)
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
 
+    /// GPS tracking setting (persisted)
+    @AppStorage("gpsTrackingEnabled") private var gpsTrackingEnabled = false
+
+    /// GPS accuracy mode (persisted)
+    @AppStorage("gpsAccuracyMode") private var gpsAccuracyMode: GPSAccuracyMode = .balanced
+
     // MARK: - Body
 
     public var body: some View {
@@ -61,7 +67,9 @@ public struct WatchContentView: View {
                 WatchSettingsView(
                     voiceAnnouncementsEnabled: $voiceEnabled,
                     bellsEnabled: $bellsEnabled,
-                    hapticsEnabled: $hapticsEnabled
+                    hapticsEnabled: $hapticsEnabled,
+                    gpsTrackingEnabled: $gpsTrackingEnabled,
+                    gpsAccuracyMode: $gpsAccuracyMode
                 )
             }
         }
@@ -74,11 +82,19 @@ public struct WatchContentView: View {
         .onChange(of: hapticsEnabled) { _, newValue in
             timer.hapticsEnabled = newValue
         }
+        .onChange(of: gpsTrackingEnabled) { _, newValue in
+            timer.gpsTrackingEnabled = newValue
+        }
+        .onChange(of: gpsAccuracyMode) { _, newValue in
+            timer.gpsAccuracyMode = newValue
+        }
         .task {
             // Sync persisted settings to timer on launch
             timer.voiceAnnouncementsEnabled = voiceEnabled
             timer.bellsEnabled = bellsEnabled
             timer.hapticsEnabled = hapticsEnabled
+            timer.gpsTrackingEnabled = gpsTrackingEnabled
+            timer.gpsAccuracyMode = gpsAccuracyMode
             // Request HealthKit authorization on launch
             _ = await timer.requestHealthKitAuthorization()
         }
@@ -92,8 +108,8 @@ public struct WatchContentView: View {
 
         let record = WorkoutRecord(
             from: timer.workoutStats,
-            runInterval: timer.runInterval.rawValue,
-            walkInterval: timer.walkInterval.rawValue,
+            runInterval: timer.runInterval,
+            walkInterval: timer.walkInterval,
             savedToHealthKit: true  // Watch workouts are always saved to HealthKit
         )
 
@@ -145,7 +161,7 @@ public struct WatchContentView: View {
                         showRunPicker = true
                     } label: {
                         HStack {
-                            Text(timer.runInterval.displayName)
+                            Text(timer.runIntervalSelection.displayName)
                                 .font(.system(size: 15, weight: .medium, design: .rounded))
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -174,7 +190,7 @@ public struct WatchContentView: View {
                         showWalkPicker = true
                     } label: {
                         HStack {
-                            Text(timer.walkInterval.displayName)
+                            Text(timer.walkIntervalSelection.displayName)
                                 .font(.system(size: 15, weight: .medium, design: .rounded))
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -236,7 +252,7 @@ public struct WatchContentView: View {
                 IntervalPickerView(
                     title: "Run Interval",
                     color: .orange,
-                    selection: $timer.runInterval,
+                    selection: $timer.runIntervalSelection,
                     isPresented: $showRunPicker
                 )
             }
@@ -244,7 +260,7 @@ public struct WatchContentView: View {
                 IntervalPickerView(
                     title: "Walk Interval",
                     color: .green,
-                    selection: $timer.walkInterval,
+                    selection: $timer.walkIntervalSelection,
                     isPresented: $showWalkPicker
                 )
             }
@@ -255,39 +271,176 @@ public struct WatchContentView: View {
 
 // MARK: - Interval Picker View
 
-/// A picker view that auto-dismisses when a selection is made
+/// A picker view that shows preset durations and a custom option
 struct IntervalPickerView: View {
     let title: String
     let color: Color
-    @Binding var selection: IntervalDuration
+    @Binding var selection: IntervalSelection
     @Binding var isPresented: Bool
+    @State private var showCustomPicker = false
 
     var body: some View {
         List {
+            // Preset options
             ForEach(IntervalDuration.allCases) { duration in
                 Button {
-                    selection = duration
+                    selection = .preset(duration)
                     isPresented = false  // Auto-dismiss on selection
                 } label: {
                     HStack {
                         Text(duration.displayName)
                             .font(.system(size: 15, weight: .medium, design: .rounded))
                         Spacer()
-                        if selection == duration {
+                        if selection.presetDuration == duration {
                             Image(systemName: "checkmark")
                                 .foregroundStyle(color)
                         }
                     }
                 }
                 .listRowBackground(
-                    selection == duration
+                    selection.presetDuration == duration
                         ? color.opacity(0.2)
                         : Color.clear
                 )
             }
+
+            // Custom option
+            Button {
+                showCustomPicker = true
+            } label: {
+                HStack {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                    Text("Custom")
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                    Spacer()
+                    if selection.isCustom {
+                        Text(selection.displayName)
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(color)
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .listRowBackground(
+                selection.isCustom
+                    ? color.opacity(0.2)
+                    : Color.clear
+            )
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showCustomPicker) {
+            WatchCustomTimePickerView(
+                selection: $selection,
+                color: color,
+                onDismiss: {
+                    showCustomPicker = false
+                    isPresented = false
+                }
+            )
+        }
+    }
+}
+
+// MARK: - Watch Custom Time Picker View
+
+/// A view for setting custom interval duration on watchOS
+struct WatchCustomTimePickerView: View {
+    @Binding var selection: IntervalSelection
+    let color: Color
+    let onDismiss: () -> Void
+
+    @State private var minutes: Int = 1
+    @State private var seconds: Int = 0
+
+    var body: some View {
+        VStack(spacing: 12) {
+            // Time display
+            Text(formattedTime)
+                .font(.system(size: 36, weight: .light, design: .rounded))
+                .foregroundStyle(color)
+                .monospacedDigit()
+
+            // Pickers in a compact layout
+            HStack(spacing: 4) {
+                // Minutes
+                Picker("Min", selection: $minutes) {
+                    ForEach(0...30, id: \.self) { min in
+                        Text("\(min)m").tag(min)
+                    }
+                }
+                .frame(width: 70)
+
+                Text(":")
+                    .font(.system(size: 20, weight: .light, design: .rounded))
+                    .foregroundStyle(.secondary)
+
+                // Seconds
+                Picker("Sec", selection: $seconds) {
+                    ForEach([0, 15, 30, 45], id: \.self) { sec in
+                        Text(String(format: "%02ds", sec)).tag(sec)
+                    }
+                }
+                .frame(width: 70)
+            }
+
+            // Validation
+            if !isValidSelection {
+                Text("Min: 10s, Max: 30m")
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(.red)
+            }
+
+            // Apply button
+            Button(action: applySelection) {
+                Text("Apply")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(isValidSelection ? color : Color.gray, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(!isValidSelection)
+        }
+        .padding(.horizontal, 8)
+        .navigationTitle("Custom")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Initialize from current selection if custom
+            if case .custom(let secs) = selection {
+                minutes = secs / 60
+                // Round seconds to nearest 15
+                let rawSeconds = secs % 60
+                seconds = [0, 15, 30, 45].min(by: { abs($0 - rawSeconds) < abs($1 - rawSeconds) }) ?? 0
+            }
+        }
+    }
+
+    private var totalSeconds: Int {
+        minutes * 60 + seconds
+    }
+
+    private var formattedTime: String {
+        String(format: "%d:%02d", minutes, seconds)
+    }
+
+    private var isValidSelection: Bool {
+        totalSeconds >= IntervalSelection.minimumCustomSeconds &&
+        totalSeconds <= IntervalSelection.maximumCustomSeconds
+    }
+
+    private func applySelection() {
+        // Use smartSelection to automatically use preset if time matches
+        selection = IntervalSelection.smartSelection(seconds: totalSeconds)
+        onDismiss()
     }
 }
 

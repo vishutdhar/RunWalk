@@ -13,6 +13,8 @@ public struct ContentView: View {
 
     @State private var timer = IntervalTimer()
     @State private var selectedTab: Tab = .timer
+    @State private var showRunCustomPicker = false
+    @State private var showWalkCustomPicker = false
 
     /// Voice announcements setting (persisted)
     @AppStorage("voiceAnnouncementsEnabled") private var voiceEnabled = false
@@ -20,6 +22,10 @@ public struct ContentView: View {
     @AppStorage("bellsEnabled") private var bellsEnabled = true
     /// Haptics setting (persisted)
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
+    /// GPS tracking setting (persisted)
+    @AppStorage("gpsTrackingEnabled") private var gpsTrackingEnabled = false
+    /// GPS accuracy mode (persisted)
+    @AppStorage("gpsAccuracyMode") private var gpsAccuracyMode: GPSAccuracyMode = .balanced
 
     // MARK: - Tab Enum
 
@@ -51,7 +57,9 @@ public struct ContentView: View {
             SettingsTabView(
                 voiceEnabled: $voiceEnabled,
                 bellsEnabled: $bellsEnabled,
-                hapticsEnabled: $hapticsEnabled
+                hapticsEnabled: $hapticsEnabled,
+                gpsTrackingEnabled: $gpsTrackingEnabled,
+                gpsAccuracyMode: $gpsAccuracyMode
             )
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
@@ -68,11 +76,19 @@ public struct ContentView: View {
         .onChange(of: hapticsEnabled) { _, newValue in
             timer.hapticsEnabled = newValue
         }
+        .onChange(of: gpsTrackingEnabled) { _, newValue in
+            timer.gpsTrackingEnabled = newValue
+        }
+        .onChange(of: gpsAccuracyMode) { _, newValue in
+            timer.gpsAccuracyMode = newValue
+        }
         .onAppear {
             // Sync persisted settings to timer on appear
             timer.voiceAnnouncementsEnabled = voiceEnabled
             timer.bellsEnabled = bellsEnabled
             timer.hapticsEnabled = hapticsEnabled
+            timer.gpsTrackingEnabled = gpsTrackingEnabled
+            timer.gpsAccuracyMode = gpsAccuracyMode
 
             // Configure tab bar appearance for liquid glass effect
             configureTabBarAppearance()
@@ -135,8 +151,8 @@ public struct ContentView: View {
 
         let record = WorkoutRecord(
             from: timer.workoutStats,
-            runInterval: timer.runInterval.rawValue,
-            walkInterval: timer.walkInterval.rawValue,
+            runInterval: timer.runInterval,
+            walkInterval: timer.walkInterval,
             savedToHealthKit: timer.workoutSavedToHealth
         )
 
@@ -186,114 +202,142 @@ public struct ContentView: View {
     // MARK: - Selection View (Before Starting)
 
     private var selectionView: some View {
-        ScrollView {
-            VStack(spacing: 30) {
-                // Header with colored title
-                HStack(spacing: 0) {
-                    Text("Run")
-                        .foregroundStyle(.orange)
-                    Text("Walk")
-                        .foregroundStyle(.green)
-                }
-                .font(.system(size: 34, weight: .bold, design: .rounded))
-                .padding(.top, 20)
-
-                // RUN interval picker
-                VStack(spacing: 16) {
-                    HStack {
-                        Circle()
-                            .fill(Color.orange)
-                            .frame(width: 12, height: 12)
-                        Text("RUN")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 30) {
+                    // Header with colored title
+                    HStack(spacing: 0) {
+                        Text("Run")
                             .foregroundStyle(.orange)
-                            .tracking(1)
-                    }
-
-                    // 3-column grid for RUN
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 8),
-                        GridItem(.flexible(), spacing: 8),
-                        GridItem(.flexible(), spacing: 8)
-                    ], spacing: 8) {
-                        ForEach(IntervalDuration.allCases) { interval in
-                            IntervalChip(
-                                interval: interval,
-                                isSelected: timer.runInterval == interval,
-                                color: .orange
-                            ) {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    timer.runInterval = interval
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-
-                // WALK interval picker
-                VStack(spacing: 16) {
-                    HStack {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 12, height: 12)
-                        Text("WALK")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                        Text("Walk")
                             .foregroundStyle(.green)
-                            .tracking(1)
                     }
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .padding(.top, 20)
 
-                    // 3-column grid for WALK
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 8),
-                        GridItem(.flexible(), spacing: 8),
-                        GridItem(.flexible(), spacing: 8)
-                    ], spacing: 8) {
-                        ForEach(IntervalDuration.allCases) { interval in
-                            IntervalChip(
-                                interval: interval,
-                                isSelected: timer.walkInterval == interval,
-                                color: .green
-                            ) {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    timer.walkInterval = interval
+                    // RUN interval picker
+                    VStack(spacing: 16) {
+                        HStack {
+                            Circle()
+                                .fill(Color.orange)
+                                .frame(width: 12, height: 12)
+                            Text("RUN")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundStyle(.orange)
+                                .tracking(1)
+                        }
+
+                        // 3-column grid for RUN
+                        LazyVGrid(columns: [
+                            GridItem(.flexible(), spacing: 8),
+                            GridItem(.flexible(), spacing: 8),
+                            GridItem(.flexible(), spacing: 8)
+                        ], spacing: 8) {
+                            ForEach(IntervalDuration.allCases) { interval in
+                                IntervalChip(
+                                    interval: interval,
+                                    isSelected: timer.runIntervalSelection.presetDuration == interval,
+                                    color: .orange
+                                ) {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        timer.runIntervalSelection = .preset(interval)
+                                    }
                                 }
                             }
                         }
-                    }
-                }
-                .padding(.horizontal, 20)
 
-                Spacer()
-                    .frame(minHeight: 20)
-
-                // Circular start button
-                Button(action: { timer.start() }) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 120, height: 120)
-
-                        Circle()
-                            .fill(Color.green.opacity(0.3))
-                            .frame(width: 140, height: 140)
-
-                        VStack(spacing: 2) {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 36, weight: .medium))
-                            Text("Start")
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        // Custom interval chip (full width)
+                        CustomIntervalChip(
+                            isSelected: timer.runIntervalSelection.isCustom,
+                            customSeconds: timer.runIntervalSelection.isCustom ? timer.runIntervalSelection.seconds : nil,
+                            color: .orange
+                        ) {
+                            showRunCustomPicker = true
                         }
-                        .foregroundStyle(.black)
                     }
-                }
-                .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
 
-                Spacer()
-                    .frame(minHeight: 20)
+                    // WALK interval picker
+                    VStack(spacing: 16) {
+                        HStack {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 12, height: 12)
+                            Text("WALK")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundStyle(.green)
+                                .tracking(1)
+                        }
+
+                        // 3-column grid for WALK
+                        LazyVGrid(columns: [
+                            GridItem(.flexible(), spacing: 8),
+                            GridItem(.flexible(), spacing: 8),
+                            GridItem(.flexible(), spacing: 8)
+                        ], spacing: 8) {
+                            ForEach(IntervalDuration.allCases) { interval in
+                                IntervalChip(
+                                    interval: interval,
+                                    isSelected: timer.walkIntervalSelection.presetDuration == interval,
+                                    color: .green
+                                ) {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        timer.walkIntervalSelection = .preset(interval)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Custom interval chip (full width)
+                        CustomIntervalChip(
+                            isSelected: timer.walkIntervalSelection.isCustom,
+                            customSeconds: timer.walkIntervalSelection.isCustom ? timer.walkIntervalSelection.seconds : nil,
+                            color: .green
+                        ) {
+                            showWalkCustomPicker = true
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                }
             }
+            .scrollIndicators(.hidden)
+
+            // Start button (fixed at bottom, outside ScrollView)
+            Button(action: { timer.start() }) {
+                HStack(spacing: 10) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 22))
+                    Text("Start")
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
+                }
+                .foregroundStyle(.black)
+                .padding(.horizontal, 40)
+                .padding(.vertical, 16)
+                .background(Color.green, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 20)
+            .padding(.bottom, 36)
         }
-        .scrollIndicators(.hidden)
+        .sheet(isPresented: $showRunCustomPicker) {
+            CustomTimePickerSheet(
+                selection: $timer.runIntervalSelection,
+                color: .orange,
+                title: "Run Interval"
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showWalkCustomPicker) {
+            CustomTimePickerSheet(
+                selection: $timer.walkIntervalSelection,
+                color: .green,
+                title: "Walk Interval"
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: - Running View (Timer Active)
@@ -350,7 +394,7 @@ public struct ContentView: View {
                         .contentTransition(.numericText(countsDown: true))
                         .animation(.linear(duration: 0.1), value: timer.timeRemaining)
 
-                    Text(timer.currentInterval.displayName)
+                    Text(timer.currentIntervalSelection.displayName)
                         .font(.system(size: 17, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
@@ -403,8 +447,8 @@ public struct ContentView: View {
     // MARK: - Computed Properties
 
     private var progress: Double {
-        let elapsed = timer.currentInterval.rawValue - timer.timeRemaining
-        return Double(elapsed) / Double(timer.currentInterval.rawValue)
+        let elapsed = timer.currentIntervalSeconds - timer.timeRemaining
+        return Double(elapsed) / Double(timer.currentIntervalSeconds)
     }
 
     // MARK: - Initialization
@@ -418,6 +462,8 @@ struct SettingsTabView: View {
     @Binding var voiceEnabled: Bool
     @Binding var bellsEnabled: Bool
     @Binding var hapticsEnabled: Bool
+    @Binding var gpsTrackingEnabled: Bool
+    @Binding var gpsAccuracyMode: GPSAccuracyMode
 
     var body: some View {
         NavigationStack {
@@ -493,12 +539,68 @@ struct SettingsTabView: View {
                     }
                     .listRowBackground(Color.white.opacity(0.08))
 
+                    // GPS/Location Section
+                    Section {
+                        // GPS Tracking toggle
+                        Toggle(isOn: $gpsTrackingEnabled) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(.blue)
+                                    .frame(width: 28)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("GPS Tracking")
+                                        .font(.system(size: 17, weight: .regular))
+                                    Text("Track route and distance during workouts")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .tint(.green)
+
+                        // Accuracy Mode picker (only shown when GPS is enabled)
+                        if gpsTrackingEnabled {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: gpsAccuracyMode.iconName)
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(.cyan)
+                                        .frame(width: 28)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Accuracy")
+                                            .font(.system(size: 17, weight: .regular))
+                                        Text(gpsAccuracyMode.description)
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+
+                                Picker("Accuracy", selection: $gpsAccuracyMode) {
+                                    ForEach(GPSAccuracyMode.allCases) { mode in
+                                        Text(mode.displayName).tag(mode)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                            }
+                        }
+                    } header: {
+                        Text("Location")
+                    } footer: {
+                        if gpsTrackingEnabled {
+                            Text("Higher accuracy uses more battery. Balanced is recommended for most workouts.")
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.08))
+
                     // About Section
                     Section {
                         HStack {
                             Text("Version")
                             Spacer()
-                            Text("1.3")
+                            Text("1.4")
                                 .foregroundStyle(.secondary)
                         }
                         .listRowBackground(Color.white.opacity(0.08))
@@ -536,6 +638,188 @@ struct IntervalChip: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Custom Interval Chip Component
+
+/// A chip that shows "Custom" and displays the custom time when selected
+struct CustomIntervalChip: View {
+    let isSelected: Bool
+    let customSeconds: Int?
+    var color: Color = .white
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 14, weight: .medium))
+
+                if let seconds = customSeconds, isSelected {
+                    Text(formatCustomTime(seconds))
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                } else {
+                    Text("Custom")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                }
+            }
+            .foregroundStyle(isSelected ? .black : .white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? color : Color.white.opacity(0.12))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func formatCustomTime(_ totalSeconds: Int) -> String {
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+
+        if minutes == 0 {
+            return "\(seconds) sec"
+        } else if seconds == 0 {
+            return "\(minutes) min"
+        } else {
+            return "\(minutes)m \(seconds)s"
+        }
+    }
+}
+
+// MARK: - Custom Time Picker Sheet
+
+/// A sheet that allows the user to set a custom interval duration
+struct CustomTimePickerSheet: View {
+    @Binding var selection: IntervalSelection
+    let color: Color
+    let title: String
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var minutes: Int = 1
+    @State private var seconds: Int = 0
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+
+                VStack(spacing: 30) {
+                    // Time display
+                    Text(formattedTime)
+                        .font(.system(size: 60, weight: .light, design: .rounded))
+                        .foregroundStyle(color)
+                        .monospacedDigit()
+
+                    // Pickers
+                    HStack(spacing: 20) {
+                        // Minutes picker
+                        VStack(spacing: 8) {
+                            Text("Minutes")
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                .foregroundStyle(.secondary)
+
+                            Picker("Minutes", selection: $minutes) {
+                                ForEach(0...30, id: \.self) { min in
+                                    Text("\(min)").tag(min)
+                                }
+                            }
+                            .pickerStyle(.wheel)
+                            .frame(width: 100, height: 150)
+                            .clipped()
+                        }
+
+                        Text(":")
+                            .font(.system(size: 40, weight: .light, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 30)
+
+                        // Seconds picker
+                        VStack(spacing: 8) {
+                            Text("Seconds")
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                .foregroundStyle(.secondary)
+
+                            Picker("Seconds", selection: $seconds) {
+                                ForEach(0..<60, id: \.self) { sec in
+                                    Text(String(format: "%02d", sec)).tag(sec)
+                                }
+                            }
+                            .pickerStyle(.wheel)
+                            .frame(width: 100, height: 150)
+                            .clipped()
+                        }
+                    }
+
+                    // Validation message
+                    if totalSeconds < IntervalSelection.minimumCustomSeconds {
+                        Text("Minimum: 10 seconds")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundStyle(.red)
+                    } else if totalSeconds > IntervalSelection.maximumCustomSeconds {
+                        Text("Maximum: 30 minutes")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundStyle(.red)
+                    }
+
+                    Spacer()
+
+                    // Apply button
+                    Button(action: applySelection) {
+                        Text("Apply")
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(isValidSelection ? color : Color.gray)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .disabled(!isValidSelection)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                }
+                .padding(.top, 20)
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundStyle(.white)
+                }
+            }
+        }
+        .onAppear {
+            // Initialize pickers from current selection if it's custom
+            if case .custom(let secs) = selection {
+                minutes = secs / 60
+                seconds = secs % 60
+            }
+        }
+    }
+
+    private var totalSeconds: Int {
+        minutes * 60 + seconds
+    }
+
+    private var formattedTime: String {
+        String(format: "%d:%02d", minutes, seconds)
+    }
+
+    private var isValidSelection: Bool {
+        totalSeconds >= IntervalSelection.minimumCustomSeconds &&
+        totalSeconds <= IntervalSelection.maximumCustomSeconds
+    }
+
+    private func applySelection() {
+        // Use smartSelection to automatically use preset if time matches
+        selection = IntervalSelection.smartSelection(seconds: totalSeconds)
+        dismiss()
     }
 }
 

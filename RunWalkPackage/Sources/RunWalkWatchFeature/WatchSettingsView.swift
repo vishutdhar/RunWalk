@@ -1,4 +1,5 @@
 import SwiftUI
+import RunWalkShared
 
 /// Settings view for the watchOS app
 /// Compact design optimized for small watch screen
@@ -8,6 +9,8 @@ struct WatchSettingsView: View {
     @Binding var voiceAnnouncementsEnabled: Bool
     @Binding var bellsEnabled: Bool
     @Binding var hapticsEnabled: Bool
+    @Binding var gpsTrackingEnabled: Bool
+    @Binding var gpsAccuracyMode: GPSAccuracyMode
     @Environment(\.dismiss) private var dismiss
 
     // MARK: - Body
@@ -73,6 +76,37 @@ struct WatchSettingsView: View {
             } header: {
                 Text("Feedback")
             }
+
+            // GPS/Location Section
+            Section {
+                // GPS Tracking toggle
+                Toggle(isOn: $gpsTrackingEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.blue)
+                            Text("GPS")
+                                .font(.system(size: 15, weight: .medium))
+                        }
+                        Text("Track route")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .tint(.green)
+
+                // Accuracy Mode picker (only shown when GPS is enabled)
+                if gpsTrackingEnabled {
+                    Picker("Accuracy", selection: $gpsAccuracyMode) {
+                        ForEach(GPSAccuracyMode.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }
+                }
+            } header: {
+                Text("Location")
+            }
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
@@ -86,7 +120,9 @@ struct WatchSettingsView: View {
         WatchSettingsView(
             voiceAnnouncementsEnabled: .constant(false),
             bellsEnabled: .constant(true),
-            hapticsEnabled: .constant(true)
+            hapticsEnabled: .constant(true),
+            gpsTrackingEnabled: .constant(true),
+            gpsAccuracyMode: .constant(.balanced)
         )
     }
 }

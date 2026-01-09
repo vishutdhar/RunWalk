@@ -1,5 +1,6 @@
 import SwiftUI
 import Observation
+import CoreLocation
 import RunWalkShared
 
 /// Watch-specific interval timer that coordinates with HKWorkoutSession and haptics
@@ -37,27 +38,44 @@ public final class WatchIntervalTimer {
     /// Current countdown value (3, 2, 1)
     public private(set) var countdownValue: Int = 3
 
-    /// Selected interval duration for RUN phase
-    public var runInterval: IntervalDuration = .thirtySeconds {
+    /// Selected interval for RUN phase (preset or custom)
+    public var runIntervalSelection: IntervalSelection = .preset(.thirtySeconds) {
         didSet {
             if !isActive && currentPhase == .run {
-                timeRemaining = runInterval.rawValue
+                timeRemaining = runIntervalSelection.seconds
             }
         }
     }
 
-    /// Selected interval duration for WALK phase
-    public var walkInterval: IntervalDuration = .oneMinute {
+    /// Selected interval for WALK phase (preset or custom)
+    public var walkIntervalSelection: IntervalSelection = .preset(.oneMinute) {
         didSet {
             if !isActive && currentPhase == .walk {
-                timeRemaining = walkInterval.rawValue
+                timeRemaining = walkIntervalSelection.seconds
             }
         }
     }
 
-    /// Returns the interval duration for the current phase
-    public var currentInterval: IntervalDuration {
-        currentPhase == .run ? runInterval : walkInterval
+    /// Returns the interval selection for the current phase
+    public var currentIntervalSelection: IntervalSelection {
+        currentPhase == .run ? runIntervalSelection : walkIntervalSelection
+    }
+
+    /// Returns the current interval duration in seconds
+    public var currentIntervalSeconds: Int {
+        currentIntervalSelection.seconds
+    }
+
+    // MARK: - Legacy Accessors (for backward compatibility)
+
+    /// Legacy accessor for run interval - returns the selection's seconds
+    public var runInterval: Int {
+        runIntervalSelection.seconds
+    }
+
+    /// Legacy accessor for walk interval - returns the selection's seconds
+    public var walkInterval: Int {
+        walkIntervalSelection.seconds
     }
 
     /// Active calories from HealthKit
@@ -108,6 +126,34 @@ public final class WatchIntervalTimer {
         }
     }
 
+    /// Whether GPS tracking is enabled (set from UI)
+    public var gpsTrackingEnabled: Bool = false {
+        didSet {
+            locationManager?.accuracyMode = gpsAccuracyMode
+        }
+    }
+
+    /// GPS accuracy mode (set from UI)
+    public var gpsAccuracyMode: GPSAccuracyMode = .balanced {
+        didSet {
+            locationManager?.accuracyMode = gpsAccuracyMode
+        }
+    }
+
+    /// Current route data (for live map display during workout)
+    public var currentRouteData: RouteData {
+        locationManager?.routeData ?? RouteData()
+    }
+
+    /// Current location (for live map centering)
+    public var currentLocation: CLLocation? {
+        locationManager?.currentLocation
+    }
+
+    // MARK: - Location Manager
+
+    private var locationManager: WatchLocationManager?
+
     // MARK: - Initialization
 
     public init(
@@ -120,7 +166,7 @@ public final class WatchIntervalTimer {
         self.workoutManager = workoutManager
         self.hapticManager = hapticManager
         self.voiceManager = voiceManager
-        timeRemaining = runInterval.rawValue
+        timeRemaining = runIntervalSelection.seconds
     }
 
     // MARK: - HealthKit
@@ -183,15 +229,32 @@ public final class WatchIntervalTimer {
         workoutStats = WorkoutStats()
         workoutStats.startTime = clock.now()
         workoutStats.runIntervals = 1
-        previousTimeRemaining = runInterval.rawValue
+        workoutStats.gpsTrackingEnabled = gpsTrackingEnabled
+        previousTimeRemaining = runIntervalSelection.seconds
 
         phaseStartTime = clock.now()
+
+        // Start GPS tracking if enabled
+        if gpsTrackingEnabled {
+            await startGPSTracking()
+        }
 
         // Play RUN haptic and voice
         hapticManager.playPhaseTransition(to: currentPhase)
         voiceManager.announce(phase: currentPhase)
 
         startTimer()
+    }
+
+    /// Starts GPS tracking for the workout
+    private func startGPSTracking() async {
+        locationManager = WatchLocationManager()
+        locationManager?.accuracyMode = gpsAccuracyMode
+
+        let authorized = await locationManager?.requestAuthorization() ?? false
+        if authorized {
+            locationManager?.startTracking()
+        }
     }
 
     /// Resumes from pause
@@ -247,6 +310,13 @@ public final class WatchIntervalTimer {
         let wasActive = isActive
         isCountingDown = false
 
+        // Stop GPS tracking and capture route data
+        if let locManager = locationManager, gpsTrackingEnabled {
+            locManager.stopTracking()
+            workoutStats.routeData = locManager.routeData
+            workoutStats.totalDistance = locManager.routeData.totalDistanceMeters
+        }
+
         if wasActive && !wasCounting {
             workoutStats.endTime = clock.now()
             workoutStats.totalDuration = totalElapsedTime
@@ -268,8 +338,9 @@ public final class WatchIntervalTimer {
         accumulatedTimeBeforePause = 0
         totalTimeBeforePause = 0
         workoutStartTime = nil
+        locationManager = nil  // Release location manager
         currentPhase = .run
-        timeRemaining = runInterval.rawValue
+        timeRemaining = runIntervalSelection.seconds
         isRunning = false
         isActive = false
 
@@ -301,7 +372,7 @@ public final class WatchIntervalTimer {
             }
         }
 
-        let intervalDuration = TimeInterval(currentInterval.rawValue)
+        let intervalDuration = TimeInterval(currentIntervalSeconds)
         let remaining = intervalDuration - totalElapsed
 
         if remaining <= 0 {
@@ -334,8 +405,8 @@ public final class WatchIntervalTimer {
 
         phaseStartTime = clock.now()
         accumulatedTimeBeforePause = 0
-        timeRemaining = currentInterval.rawValue
-        previousTimeRemaining = currentInterval.rawValue
+        timeRemaining = currentIntervalSeconds
+        previousTimeRemaining = currentIntervalSeconds
 
         // Play phase transition haptic and voice
         hapticManager.playPhaseTransition(to: currentPhase)
@@ -370,10 +441,10 @@ public final class WatchIntervalTimer {
             isActive: isActive,
             currentPhase: currentPhase.rawValue,
             timeRemaining: timeRemaining,
-            intervalDuration: currentInterval.rawValue,
+            intervalDuration: currentIntervalSeconds,
             lastUpdate: clock.now(),
-            runIntervalSetting: runInterval.rawValue,
-            walkIntervalSetting: walkInterval.rawValue
+            runIntervalSetting: runIntervalSelection.seconds,
+            walkIntervalSetting: walkIntervalSelection.seconds
         )
         stateManager.writeState(state)
     }

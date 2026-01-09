@@ -1,11 +1,13 @@
 import SwiftUI
 import Observation
 import Dispatch
+import CoreLocation
 import RunWalkShared
 
 // Re-export shared types for convenience
 public typealias TimerPhase = RunWalkShared.TimerPhase
 public typealias IntervalDuration = RunWalkShared.IntervalDuration
+public typealias IntervalSelection = RunWalkShared.IntervalSelection
 public typealias WorkoutStats = RunWalkShared.WorkoutStats
 public typealias Clock = RunWalkShared.Clock
 public typealias SystemClock = RunWalkShared.SystemClock
@@ -53,29 +55,46 @@ public final class IntervalTimer {
     /// Previous timeRemaining for countdown detection
     private var previousTimeRemaining: Int = 0
 
-    /// Selected interval duration for RUN phase
-    public var runInterval: IntervalDuration = .thirtySeconds {
+    /// Selected interval for RUN phase (preset or custom)
+    public var runIntervalSelection: IntervalSelection = .preset(.thirtySeconds) {
         didSet {
             // Reset timer when interval changes (only if not active and on run phase)
             if !isActive && currentPhase == .run {
-                timeRemaining = runInterval.rawValue
+                timeRemaining = runIntervalSelection.seconds
             }
         }
     }
 
-    /// Selected interval duration for WALK phase
-    public var walkInterval: IntervalDuration = .oneMinute {
+    /// Selected interval for WALK phase (preset or custom)
+    public var walkIntervalSelection: IntervalSelection = .preset(.oneMinute) {
         didSet {
             // Reset timer when interval changes (only if not active and on walk phase)
             if !isActive && currentPhase == .walk {
-                timeRemaining = walkInterval.rawValue
+                timeRemaining = walkIntervalSelection.seconds
             }
         }
     }
 
-    /// Returns the interval duration for the current phase
-    public var currentInterval: IntervalDuration {
-        currentPhase == .run ? runInterval : walkInterval
+    /// Returns the interval selection for the current phase
+    public var currentIntervalSelection: IntervalSelection {
+        currentPhase == .run ? runIntervalSelection : walkIntervalSelection
+    }
+
+    /// Returns the current interval duration in seconds
+    public var currentIntervalSeconds: Int {
+        currentIntervalSelection.seconds
+    }
+
+    // MARK: - Legacy Accessors (for backward compatibility)
+
+    /// Legacy accessor for run interval - returns the selection's seconds
+    public var runInterval: Int {
+        runIntervalSelection.seconds
+    }
+
+    /// Legacy accessor for walk interval - returns the selection's seconds
+    public var walkInterval: Int {
+        walkIntervalSelection.seconds
     }
 
     // MARK: - Private Properties
@@ -126,6 +145,34 @@ public final class IntervalTimer {
         }
     }
 
+    /// Whether GPS tracking is enabled (set from UI)
+    public var gpsTrackingEnabled: Bool = false {
+        didSet {
+            locationManager?.accuracyMode = gpsAccuracyMode
+        }
+    }
+
+    /// GPS accuracy mode (set from UI)
+    public var gpsAccuracyMode: GPSAccuracyMode = .balanced {
+        didSet {
+            locationManager?.accuracyMode = gpsAccuracyMode
+        }
+    }
+
+    /// Current route data (for live map display during workout)
+    public var currentRouteData: RouteData {
+        locationManager?.routeData ?? RouteData()
+    }
+
+    /// Current location (for live map centering)
+    public var currentLocation: CLLocation? {
+        locationManager?.currentLocation
+    }
+
+    // MARK: - Location Manager
+
+    private var locationManager: iOSLocationManager?
+
     // MARK: - Initialization
 
     /// Creates an IntervalTimer
@@ -139,7 +186,7 @@ public final class IntervalTimer {
         self.healthKitManager = enableHealthKit ? HealthKitManager() : nil
         self.voiceManager = enableAudio ? VoiceAnnouncementManager() : nil
         self.enableDispatchTimer = enableDispatchTimer
-        timeRemaining = runInterval.rawValue
+        timeRemaining = runIntervalSelection.seconds
     }
 
     // MARK: - Timer Controls
@@ -193,10 +240,16 @@ public final class IntervalTimer {
         workoutStats = WorkoutStats()
         workoutStats.startTime = clock.now()
         workoutStats.runIntervals = 1  // Starting with first run interval
-        previousTimeRemaining = runInterval.rawValue
+        workoutStats.gpsTrackingEnabled = gpsTrackingEnabled
+        previousTimeRemaining = runIntervalSelection.seconds
 
         // Record when this phase segment started
         phaseStartTime = clock.now()
+
+        // Start GPS tracking if enabled
+        if gpsTrackingEnabled {
+            startGPSTracking()
+        }
 
         // Play the RUN tone to signal workout has started
         soundManager?.playSound(for: currentPhase)
@@ -206,6 +259,20 @@ public final class IntervalTimer {
         // (Disabled in unit tests where we manually call triggerTick)
         if enableDispatchTimer {
             startTimer()
+        }
+    }
+
+    /// Starts GPS tracking for the workout
+    private func startGPSTracking() {
+        locationManager = iOSLocationManager()
+        locationManager?.accuracyMode = gpsAccuracyMode
+
+        // Request authorization and start tracking
+        Task { @MainActor in
+            let authorized = await locationManager?.requestAuthorization() ?? false
+            if authorized {
+                locationManager?.startTracking()
+            }
         }
     }
 
@@ -268,6 +335,13 @@ public final class IntervalTimer {
         let wasCounting = isCountingDown
         isCountingDown = false
 
+        // Stop GPS tracking and capture route data
+        if let locManager = locationManager, gpsTrackingEnabled {
+            locManager.stopTracking()
+            workoutStats.routeData = locManager.routeData
+            workoutStats.totalDistance = locManager.routeData.totalDistanceMeters
+        }
+
         // Finalize workout stats before resetting (only if workout actually started)
         if isActive && !wasCounting {
             workoutStats.endTime = clock.now()
@@ -288,10 +362,11 @@ public final class IntervalTimer {
         accumulatedTimeBeforePause = 0
         totalTimeBeforePause = 0
         workoutStartTime = nil
+        locationManager = nil  // Release location manager
 
         isActive = false
         currentPhase = .run
-        timeRemaining = runInterval.rawValue
+        timeRemaining = runIntervalSelection.seconds
     }
 
     /// Dismisses the workout summary and resets stats
@@ -341,7 +416,7 @@ public final class IntervalTimer {
             }
         }
 
-        let intervalDuration = TimeInterval(currentInterval.rawValue)
+        let intervalDuration = TimeInterval(currentIntervalSeconds)
         let remaining = intervalDuration - totalElapsed
 
         if remaining <= 0 {
@@ -380,8 +455,8 @@ public final class IntervalTimer {
         // Reset timing for new phase
         phaseStartTime = clock.now()
         accumulatedTimeBeforePause = 0
-        timeRemaining = currentInterval.rawValue
-        previousTimeRemaining = currentInterval.rawValue
+        timeRemaining = currentIntervalSeconds
+        previousTimeRemaining = currentIntervalSeconds
 
         // Play sound and voice for new phase
         soundManager?.playSound(for: currentPhase)

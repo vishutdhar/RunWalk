@@ -49,8 +49,8 @@ struct IntervalTimerTests {
         #expect(timer.timeRemaining == 30) // Default run interval
         #expect(timer.isRunning == false)
         #expect(timer.isActive == false)
-        #expect(timer.runInterval == .thirtySeconds)
-        #expect(timer.walkInterval == .oneMinute)
+        #expect(timer.runIntervalSelection == .preset(.thirtySeconds))
+        #expect(timer.walkIntervalSelection == .preset(.oneMinute))
     }
 
     @Test("Formatted time shows correct format")
@@ -62,11 +62,11 @@ struct IntervalTimerTests {
         #expect(timer.formattedTime == "0:30")
 
         // Change to 2 minutes
-        timer.runInterval = .twoMinutes
+        timer.runIntervalSelection = .preset(.twoMinutes)
         #expect(timer.formattedTime == "2:00")
 
         // Change to 90 seconds
-        timer.runInterval = .ninetySeconds
+        timer.runIntervalSelection = .preset(.ninetySeconds)
         #expect(timer.formattedTime == "1:30")
     }
 
@@ -99,7 +99,7 @@ struct IntervalTimerTests {
         #expect(timer.isRunning == false)
         #expect(timer.isActive == false)
         #expect(timer.currentPhase == .run)
-        #expect(timer.timeRemaining == timer.runInterval.rawValue)
+        #expect(timer.timeRemaining == timer.runIntervalSelection.seconds)
     }
 
     // MARK: - Timestamp-Based Calculation Tests
@@ -109,7 +109,7 @@ struct IntervalTimerTests {
     func timeRemainingDecreasesWithElapsedTime() {
         let clock = MockClock()
         let timer = IntervalTimer(clock: clock, enableAudio: false, enableDispatchTimer: false, enableHealthKit: false)
-        timer.runInterval = .thirtySeconds // 30 seconds
+        timer.runIntervalSelection = .preset(.thirtySeconds) // 30 seconds
 
         timer.start()
         #expect(timer.timeRemaining == 30)
@@ -130,8 +130,8 @@ struct IntervalTimerTests {
     func phaseSwitchesAtIntervalEnd() {
         let clock = MockClock()
         let timer = IntervalTimer(clock: clock, enableAudio: false, enableDispatchTimer: false, enableHealthKit: false)
-        timer.runInterval = .thirtySeconds // 30 seconds
-        timer.walkInterval = .oneMinute // 60 seconds
+        timer.runIntervalSelection = .preset(.thirtySeconds) // 30 seconds
+        timer.walkIntervalSelection = .preset(.oneMinute) // 60 seconds
 
         timer.start()
         #expect(timer.currentPhase == .run)
@@ -149,8 +149,8 @@ struct IntervalTimerTests {
     func multiplePhasTransitions() {
         let clock = MockClock()
         let timer = IntervalTimer(clock: clock, enableAudio: false, enableDispatchTimer: false, enableHealthKit: false)
-        timer.runInterval = .thirtySeconds // 30 seconds
-        timer.walkInterval = .thirtySeconds // 30 seconds for easier testing
+        timer.runIntervalSelection = .preset(.thirtySeconds) // 30 seconds
+        timer.walkIntervalSelection = .preset(.thirtySeconds) // 30 seconds for easier testing
 
         timer.start()
         #expect(timer.currentPhase == .run)
@@ -178,7 +178,7 @@ struct IntervalTimerTests {
     func pausePreservesAccumulatedTime() {
         let clock = MockClock()
         let timer = IntervalTimer(clock: clock, enableAudio: false, enableDispatchTimer: false, enableHealthKit: false)
-        timer.runInterval = .thirtySeconds // 30 seconds
+        timer.runIntervalSelection = .preset(.thirtySeconds) // 30 seconds
 
         timer.start()
 
@@ -207,7 +207,7 @@ struct IntervalTimerTests {
     func resumeContinuesCountdown() {
         let clock = MockClock()
         let timer = IntervalTimer(clock: clock, enableAudio: false, enableDispatchTimer: false, enableHealthKit: false)
-        timer.runInterval = .thirtySeconds
+        timer.runIntervalSelection = .preset(.thirtySeconds)
 
         timer.start()
 
@@ -240,8 +240,8 @@ struct IntervalTimerTests {
     func backgroundExecutionSimulation() {
         let clock = MockClock()
         let timer = IntervalTimer(clock: clock, enableAudio: false, enableDispatchTimer: false, enableHealthKit: false)
-        timer.runInterval = .thirtySeconds // 30 seconds
-        timer.walkInterval = .oneMinute // 60 seconds
+        timer.runIntervalSelection = .preset(.thirtySeconds) // 30 seconds
+        timer.walkIntervalSelection = .preset(.oneMinute) // 60 seconds
 
         timer.start()
         #expect(timer.currentPhase == .run)
@@ -271,7 +271,7 @@ struct IntervalTimerTests {
     func accurateTimeAfterBackground() {
         let clock = MockClock()
         let timer = IntervalTimer(clock: clock, enableAudio: false, enableDispatchTimer: false, enableHealthKit: false)
-        timer.runInterval = .oneMinute // 60 seconds
+        timer.runIntervalSelection = .preset(.oneMinute) // 60 seconds
 
         timer.start()
 
@@ -337,10 +337,10 @@ struct IntervalTimerTests {
 
         #expect(timer.timeRemaining == 30) // Default
 
-        timer.runInterval = .twoMinutes
+        timer.runIntervalSelection = .preset(.twoMinutes)
         #expect(timer.timeRemaining == 120)
 
-        timer.runInterval = .fiveMinutes
+        timer.runIntervalSelection = .preset(.fiveMinutes)
         #expect(timer.timeRemaining == 300)
     }
 
@@ -356,11 +356,133 @@ struct IntervalTimerTests {
         #expect(timer.timeRemaining == 20)
 
         // Change interval while active to 5 minutes (300 seconds)
-        timer.runInterval = .fiveMinutes
+        timer.runIntervalSelection = .preset(.fiveMinutes)
 
         // Time remaining recalculates: 300 - 10 = 290 seconds
         // This is intentional - user can extend/shorten current interval
         timer.triggerTick()
         #expect(timer.timeRemaining == 290)
+    }
+
+    // MARK: - Custom Interval Tests
+
+    @Test("Custom interval works correctly")
+    @MainActor
+    func customIntervalWorks() {
+        let clock = MockClock()
+        let timer = IntervalTimer(clock: clock, enableAudio: false, enableDispatchTimer: false, enableHealthKit: false)
+
+        // Set a custom 90-second interval (not a preset)
+        timer.runIntervalSelection = .custom(seconds: 90)
+        #expect(timer.timeRemaining == 90)
+        #expect(timer.runIntervalSelection.isCustom == true)
+        #expect(timer.runIntervalSelection.seconds == 90)
+
+        timer.start()
+
+        // Advance 60 seconds
+        clock.advance(by: 60)
+        timer.triggerTick()
+        #expect(timer.timeRemaining == 30)
+
+        // Complete the interval
+        clock.advance(by: 31)
+        timer.triggerTick()
+        #expect(timer.currentPhase == .walk)
+    }
+
+    @Test("Custom interval display names are correct")
+    @MainActor
+    func customIntervalDisplayNames() {
+        // Test various custom intervals
+        let interval30s = IntervalSelection.custom(seconds: 30)
+        #expect(interval30s.displayName == "30 sec")
+        #expect(interval30s.shortName == "30s")
+
+        let interval90s = IntervalSelection.custom(seconds: 90)
+        #expect(interval90s.displayName == "1m 30s")
+        #expect(interval90s.shortName == "1:30")
+
+        let interval5m = IntervalSelection.custom(seconds: 300)
+        #expect(interval5m.displayName == "5 min")
+        #expect(interval5m.shortName == "5m")
+
+        let interval2m45s = IntervalSelection.custom(seconds: 165)
+        #expect(interval2m45s.displayName == "2m 45s")
+        #expect(interval2m45s.shortName == "2:45")
+    }
+
+    @Test("IntervalSelection preset vs custom comparison")
+    @MainActor
+    func intervalSelectionComparison() {
+        let preset30 = IntervalSelection.preset(.thirtySeconds)
+        let custom30 = IntervalSelection.custom(seconds: 30)
+
+        // Same seconds but different types
+        #expect(preset30.seconds == custom30.seconds)
+        #expect(preset30 != custom30)
+
+        #expect(preset30.isPreset == true)
+        #expect(preset30.isCustom == false)
+        #expect(custom30.isPreset == false)
+        #expect(custom30.isCustom == true)
+
+        #expect(preset30.presetDuration == .thirtySeconds)
+        #expect(custom30.presetDuration == nil)
+    }
+
+    @Test("IntervalSelection clamping works")
+    @MainActor
+    func intervalSelectionClamping() {
+        // Test minimum clamping
+        let tooShort = IntervalSelection.customClamped(seconds: 5)
+        #expect(tooShort.seconds == 10) // Minimum is 10 seconds
+
+        // Test maximum clamping
+        let tooLong = IntervalSelection.customClamped(seconds: 3600)
+        #expect(tooLong.seconds == 1800) // Maximum is 30 minutes (1800 seconds)
+
+        // Test valid value passes through
+        let valid = IntervalSelection.customClamped(seconds: 90)
+        #expect(valid.seconds == 90)
+    }
+
+    @Test("IntervalSelection Codable round-trip works")
+    @MainActor
+    func intervalSelectionCodable() throws {
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
+        // Test preset encoding/decoding
+        let preset = IntervalSelection.preset(.twoMinutes)
+        let presetData = try encoder.encode(preset)
+        let decodedPreset = try decoder.decode(IntervalSelection.self, from: presetData)
+        #expect(decodedPreset == preset)
+        #expect(decodedPreset.seconds == 120)
+
+        // Test custom encoding/decoding
+        let custom = IntervalSelection.custom(seconds: 90)
+        let customData = try encoder.encode(custom)
+        let decodedCustom = try decoder.decode(IntervalSelection.self, from: customData)
+        #expect(decodedCustom == custom)
+        #expect(decodedCustom.seconds == 90)
+        #expect(decodedCustom.isCustom == true)
+    }
+
+    @Test("IntervalSelection RawRepresentable works for AppStorage")
+    @MainActor
+    func intervalSelectionRawRepresentable() {
+        // Test preset round-trip via rawValue (String)
+        let preset = IntervalSelection.preset(.fiveMinutes)
+        let presetRaw = preset.rawValue
+        let decodedPreset = IntervalSelection(rawValue: presetRaw)
+        #expect(decodedPreset == preset)
+
+        // Test custom round-trip via rawValue
+        let custom = IntervalSelection.custom(seconds: 165)
+        let customRaw = custom.rawValue
+        let decodedCustom = IntervalSelection(rawValue: customRaw)
+        #expect(decodedCustom == custom)
+        #expect(decodedCustom?.seconds == 165)
     }
 }
