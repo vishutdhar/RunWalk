@@ -7,7 +7,8 @@ let package = Package(
     name: "RunWalkFeature",
     platforms: [
         .iOS(.v17),
-        .watchOS(.v10)
+        .watchOS(.v10),
+        .macOS(.v14) // Required for running tests on macOS
     ],
     products: [
         // Shared code - platform agnostic models and types
@@ -44,7 +45,7 @@ let package = Package(
             dependencies: ["RunWalkShared"],
             path: "Sources/RunWalkWatchFeature"
         ),
-        // Tests for iOS features
+        // Tests (run via Xcode on iOS Simulator: Product > Test)
         .testTarget(
             name: "RunWalkFeatureTests",
             dependencies: [
