@@ -1,6 +1,6 @@
 # RunWalk Project Overview
 
-## Current Version: 1.5
+## Current Version: 1.5 (Build 2)
 
 RunWalk is a run-walk interval timer for **iOS and watchOS**. It uses **Swift 6.1+** and **SwiftUI** with a shared codebase architecture.
 
@@ -45,7 +45,10 @@ RunWalk/
 │   │   │   ├── HealthKitManager.swift
 │   │   │   ├── SoundManager.swift    # Bells + haptics
 │   │   │   ├── VoiceAnnouncementManager.swift
-│   │   │   └── WorkoutHistoryView.swift
+│   │   │   ├── WorkoutHistoryView.swift
+│   │   │   ├── WorkoutDetailView.swift    # Workout detail with route map
+│   │   │   ├── RouteMapView.swift         # Live/static map display
+│   │   │   └── iOSLocationManager.swift   # GPS tracking
 │   │   └── RunWalkWatchFeature/      # watchOS-specific code
 │   │       ├── WatchContentView.swift     # Main watch view
 │   │       ├── WatchRunningView.swift     # Active workout
@@ -55,7 +58,10 @@ RunWalk/
 │   │       ├── WatchWorkoutManager.swift  # HKWorkoutSession
 │   │       ├── WatchHapticManager.swift   # Distinct haptics
 │   │       ├── WatchVoiceAnnouncementManager.swift
-│   │       └── WatchWorkoutHistoryView.swift
+│   │       ├── WatchWorkoutHistoryView.swift
+│   │       ├── WatchWorkoutDetailView.swift   # Workout detail with route map
+│   │       ├── WatchRouteMapView.swift        # Watch map display
+│   │       └── WatchLocationManager.swift     # Watch GPS tracking
 │   └── Tests/
 │       └── RunWalkFeatureTests/
 ├── Config/                           # Build configuration
@@ -77,6 +83,7 @@ RunWalk/
 
 ### iOS App
 - 6 interval options (30s, 1min, 1.5min, 2min, 3min, 5min)
+- Custom interval durations (10 seconds to 30 minutes)
 - Voice announcements ("Run" / "Walk")
 - Bell sounds on phase transitions
 - Haptic feedback
@@ -84,9 +91,12 @@ RunWalk/
 - HealthKit workout saving
 - Workout history with detail view
 - **GPS route tracking** with live map display
+- **Swipeable workout pages** (timer ↔ live map)
+- **"Acquiring GPS Signal..."** message when waiting for location
 - **Route maps in workout history** (thumbnail + full map)
 - **Distance tracking** with pace calculation
 - Dark theme, works with screen locked
+- iPad optimized layout
 
 ### Apple Watch App
 - Standalone (works without iPhone)
@@ -243,7 +253,8 @@ screenshot()
 
 | Version | Features |
 |---------|----------|
-| 1.5 | GPS route tracking, live maps, distance tracking, workout detail view |
+| 1.5 (Build 2) | "Acquiring GPS Signal" message, iPad layout fixes, swipeable workout pages |
+| 1.5 (Build 1) | GPS route tracking, live maps, distance tracking, workout detail view |
 | 1.4 | Apple Watch app, Bells/Haptics settings toggles |
 | 1.3 | Workout history, HealthKit saving |
 | 1.2 | Settings view, Voice toggle |
@@ -266,4 +277,8 @@ screenshot()
 - Don't use GCD or completion handlers
 - Don't use CoreData (use SwiftData if needed)
 - Don't add files to app targets directly
-- Don't forget to update both xcconfig files for version changes
+- Don't forget to update ALL config files for version/build changes:
+  - `Config/Shared.xcconfig` (iOS)
+  - `Config/WatchShared.xcconfig` (watchOS)
+  - `Config/WidgetExtension.xcconfig` (Complications)
+  - `RunWalk.xcodeproj/project.pbxproj` (may have hardcoded values)
