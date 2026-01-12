@@ -11,5 +11,16 @@
 		<string>audio</string>
 		<string>location</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.vishutdhar.RunWalk</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>runwalk</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

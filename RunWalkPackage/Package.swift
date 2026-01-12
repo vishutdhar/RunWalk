@@ -27,10 +27,14 @@ let package = Package(
             targets: ["RunWalkWatchFeature"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/vincentneo/CoreGPX.git", from: "0.9.0")
+    ],
     targets: [
         // Shared target - platform agnostic types used by both iOS and watchOS
         .target(
             name: "RunWalkShared",
+            dependencies: ["CoreGPX"],
             path: "Sources/RunWalkShared"
         ),
         // iOS target - depends on shared code

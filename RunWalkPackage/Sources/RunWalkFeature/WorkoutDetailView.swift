@@ -7,6 +7,7 @@ public struct WorkoutDetailView: View {
     // MARK: - Properties
 
     let workout: WorkoutRecord
+    @Environment(StravaManager.self) private var stravaManager
 
     // MARK: - Body
 
@@ -26,6 +27,11 @@ public struct WorkoutDetailView: View {
 
                 // Metadata
                 metadataSection
+
+                // Strava sharing (only if workout has route)
+                if workout.hasRoute {
+                    stravaSection
+                }
             }
             .padding()
         }
@@ -176,6 +182,55 @@ public struct WorkoutDetailView: View {
         }
     }
 
+    // MARK: - Strava Section
+
+    private var stravaSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Share")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
+
+            HStack {
+                // Strava icon
+                ZStack {
+                    Circle()
+                        .fill(Color(red: 252/255, green: 76/255, blue: 2/255))
+                        .frame(width: 32, height: 32)
+                    Text("S")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Strava")
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white)
+
+                    if workout.isSharedToStrava {
+                        Text("Shared")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.green)
+                    } else if stravaManager.isConnected {
+                        Text("Ready to share")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Connect in Settings")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                StravaShareButton(record: workout)
+            }
+            .padding()
+            .background(Color.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
     // MARK: - Helpers
 
     private func formatSeconds(_ seconds: Int) -> String {
@@ -266,4 +321,5 @@ private struct MetadataRow: View {
             gpsTrackingEnabled: true
         ))
     }
+    .environment(StravaManager())
 }

@@ -50,6 +50,12 @@ public final class WorkoutRecord {
     /// Default to false for migration from old records without GPS
     public var gpsTrackingEnabled: Bool = false
 
+    // MARK: - Strava Properties
+
+    /// Strava activity ID if this workout was shared to Strava
+    /// Default to nil for migration from old records
+    public var stravaActivityId: Int?
+
     // MARK: - Computed Properties
 
     /// Total number of intervals completed
@@ -115,6 +121,17 @@ public final class WorkoutRecord {
     /// Whether this workout has distance data
     public var hasDistance: Bool {
         totalDistance > 0
+    }
+
+    /// Whether this workout has been shared to Strava
+    public var isSharedToStrava: Bool {
+        stravaActivityId != nil
+    }
+
+    /// URL to view this activity on Strava
+    public var stravaActivityURL: URL? {
+        guard let activityId = stravaActivityId else { return nil }
+        return URL(string: "https://www.strava.com/activities/\(activityId)")
     }
 
     /// Formatted distance string using locale preference
