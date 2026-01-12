@@ -88,6 +88,22 @@ public final class WatchIntervalTimer {
         workoutManager.heartRate
     }
 
+    /// Current heart rate zone (nil if HR is below Zone 1 threshold or unavailable)
+    public var currentHeartRateZone: HeartRateZone? {
+        workoutManager.currentHeartRateZone
+    }
+
+    /// Maximum heart rate used for zone calculation
+    public var maxHeartRate: Double {
+        workoutManager.maxHeartRate
+    }
+
+    /// Sets the user's age manually for max HR calculation
+    /// Use this when HealthKit date of birth is unavailable
+    public func setManualAge(_ age: Int) {
+        workoutManager.setManualAge(age)
+    }
+
     // MARK: - Private Properties
 
     private var timer: Timer?

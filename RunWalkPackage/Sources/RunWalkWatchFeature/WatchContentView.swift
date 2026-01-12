@@ -69,7 +69,10 @@ public struct WatchContentView: View {
                     bellsEnabled: $bellsEnabled,
                     hapticsEnabled: $hapticsEnabled,
                     gpsTrackingEnabled: $gpsTrackingEnabled,
-                    gpsAccuracyMode: $gpsAccuracyMode
+                    gpsAccuracyMode: $gpsAccuracyMode,
+                    onAgeChanged: { newAge in
+                        timer.setManualAge(newAge)
+                    }
                 )
             }
         }

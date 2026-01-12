@@ -89,7 +89,7 @@ struct WatchRunningView: View {
             }
             .frame(width: 115, height: 115)
 
-            // Elapsed time and distance
+            // Elapsed time, distance, and heart rate zone
             HStack(spacing: 8) {
                 HStack(spacing: 3) {
                     Image(systemName: "clock")
@@ -107,6 +107,14 @@ struct WatchRunningView: View {
                             .font(.system(size: 11, weight: .medium, design: .rounded))
                             .monospacedDigit()
                     }
+                }
+
+                // Heart rate zone indicator
+                if timer.heartRate > 0 {
+                    HeartRateZoneIndicator(
+                        heartRate: timer.heartRate,
+                        zone: timer.currentHeartRateZone
+                    )
                 }
             }
             .foregroundStyle(.secondary)
@@ -226,6 +234,33 @@ struct WatchRunningView: View {
     private var progress: Double {
         let elapsed = Double(timer.currentIntervalSeconds - timer.timeRemaining)
         return elapsed / Double(timer.currentIntervalSeconds)
+    }
+}
+
+// MARK: - Heart Rate Zone Indicator
+
+/// Compact heart rate zone indicator for watch display
+private struct HeartRateZoneIndicator: View {
+    let heartRate: Double
+    let zone: HeartRateZone?
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 8))
+                .foregroundStyle(zone?.color ?? .gray)
+
+            Text("\(Int(heartRate))")
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+
+            if let zone = zone {
+                Text("Z\(zone.rawValue)")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundStyle(zone.color)
+            }
+        }
     }
 }
 

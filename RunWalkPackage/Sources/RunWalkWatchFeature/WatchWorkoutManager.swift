@@ -1,6 +1,7 @@
 import Foundation
 import HealthKit
 import Observation
+import RunWalkShared
 
 /// Manages HKWorkoutSession for background execution on watchOS
 /// This is CRITICAL - without HKWorkoutSession the app stops when wrist is lowered
@@ -31,6 +32,14 @@ public final class WatchWorkoutManager: NSObject {
     /// Heart rate if available
     public private(set) var heartRate: Double = 0
 
+    /// Maximum heart rate (calculated from age or manual setting)
+    public private(set) var maxHeartRate: Double = 190  // Default for ~30 year old
+
+    /// Current heart rate zone based on current HR and max HR
+    public var currentHeartRateZone: HeartRateZone? {
+        HeartRateZone.zone(forHeartRate: heartRate, maxHeartRate: maxHeartRate)
+    }
+
     /// Error message if something goes wrong
     public private(set) var errorMessage: String?
 
@@ -55,13 +64,18 @@ public final class WatchWorkoutManager: NSObject {
 
     /// Request authorization for workout data types
     public func requestAuthorization() async -> Bool {
-        // Types we want to read
-        let readTypes: Set<HKObjectType> = [
+        // Types we want to read (including date of birth for HR zone calculation)
+        var readTypes: Set<HKObjectType> = [
             HKObjectType.quantityType(forIdentifier: .heartRate)!,
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
             HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
             HKObjectType.workoutType()
         ]
+
+        // Add date of birth characteristic for max heart rate calculation
+        if let dateOfBirthType = HKObjectType.characteristicType(forIdentifier: .dateOfBirth) {
+            readTypes.insert(dateOfBirthType)
+        }
 
         // Types we want to write
         let writeTypes: Set<HKSampleType> = [
@@ -72,11 +86,70 @@ public final class WatchWorkoutManager: NSObject {
 
         do {
             try await healthStore.requestAuthorization(toShare: writeTypes, read: readTypes)
+            // After authorization, try to calculate max HR from date of birth
+            await updateMaxHeartRateFromAge()
             return true
         } catch {
             errorMessage = "HealthKit authorization failed: \(error.localizedDescription)"
             return false
         }
+    }
+
+    // MARK: - Heart Rate Zone Support
+
+    /// Updates max heart rate based on user's age from HealthKit
+    /// Falls back to stored manual age if date of birth is unavailable
+    public func updateMaxHeartRateFromAge() async {
+        // First try to get age from HealthKit date of birth
+        if let age = getAgeFromHealthKit() {
+            maxHeartRate = HeartRateZone.maxHeartRate(forAge: age)
+            return
+        }
+
+        // Fall back to manually set age from UserDefaults
+        let manualAge = UserDefaults.standard.integer(forKey: "manualAge")
+        if manualAge > 0 {
+            maxHeartRate = HeartRateZone.maxHeartRate(forAge: manualAge)
+            return
+        }
+
+        // Default: assume 30 years old (max HR = 190)
+        maxHeartRate = 190
+    }
+
+    /// Attempts to get user's age from HealthKit date of birth
+    /// - Returns: Age in years, or nil if unavailable
+    private func getAgeFromHealthKit() -> Int? {
+        do {
+            let birthComponents = try healthStore.dateOfBirthComponents()
+            guard let birthYear = birthComponents.year else { return nil }
+
+            let currentYear = Calendar.current.component(.year, from: Date())
+            let age = currentYear - birthYear
+
+            // Sanity check: age should be between 10 and 120
+            guard age >= 10 && age <= 120 else { return nil }
+
+            return age
+        } catch {
+            // Date of birth not available - this is normal if user hasn't set it
+            return nil
+        }
+    }
+
+    /// Manually set max heart rate (for users who know their actual max HR)
+    /// - Parameter maxHR: Maximum heart rate in BPM
+    public func setMaxHeartRate(_ maxHR: Double) {
+        guard maxHR > 100 && maxHR < 250 else { return }
+        maxHeartRate = maxHR
+    }
+
+    /// Set age manually for max HR calculation (fallback when HealthKit DOB unavailable)
+    /// - Parameter age: User's age in years
+    public func setManualAge(_ age: Int) {
+        guard age >= 10 && age <= 120 else { return }
+        UserDefaults.standard.set(age, forKey: "manualAge")
+        maxHeartRate = HeartRateZone.maxHeartRate(forAge: age)
     }
 
     // MARK: - Workout Session Control

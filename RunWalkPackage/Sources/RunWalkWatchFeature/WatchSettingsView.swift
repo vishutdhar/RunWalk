@@ -13,6 +13,12 @@ struct WatchSettingsView: View {
     @Binding var gpsAccuracyMode: GPSAccuracyMode
     @Environment(\.dismiss) private var dismiss
 
+    /// Manual age for heart rate zone calculation (fallback when HealthKit DOB unavailable)
+    @AppStorage("manualAge") private var manualAge: Int = 30
+
+    /// Callback to update the timer with the new age
+    var onAgeChanged: ((Int) -> Void)?
+
     // MARK: - Body
 
     var body: some View {
@@ -107,6 +113,35 @@ struct WatchSettingsView: View {
             } header: {
                 Text("Location")
             }
+
+            // Heart Rate Zones Section
+            Section {
+                Picker(selection: $manualAge) {
+                    ForEach(18..<81, id: \.self) { age in
+                        Text("\(age)").tag(age)
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.red)
+                            Text("Age")
+                                .font(.system(size: 15, weight: .medium))
+                        }
+                        Text("Max HR: \(220 - manualAge) bpm")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .onChange(of: manualAge) { _, newAge in
+                    onAgeChanged?(newAge)
+                }
+            } header: {
+                Text("HR Zones")
+            } footer: {
+                Text("Used for heart rate zone calculation")
+            }
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
@@ -122,7 +157,8 @@ struct WatchSettingsView: View {
             bellsEnabled: .constant(true),
             hapticsEnabled: .constant(true),
             gpsTrackingEnabled: .constant(true),
-            gpsAccuracyMode: .constant(.balanced)
+            gpsAccuracyMode: .constant(.balanced),
+            onAgeChanged: nil
         )
     }
 }
