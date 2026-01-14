@@ -635,19 +635,18 @@ public struct ContentView: View {
 
     // MARK: - Preset Actions
 
-    /// Applies a workout preset by setting the run/walk intervals, switching to timer tab, and starting the workout
+    /// Applies a workout preset by setting the run/walk intervals, starting the workout, then switching to timer tab
     private func applyPreset(_ preset: WorkoutPreset) {
         // Apply the preset intervals
         timer.runIntervalSelection = IntervalSelection.smartSelection(seconds: preset.runIntervalSeconds)
         timer.walkIntervalSelection = IntervalSelection.smartSelection(seconds: preset.walkIntervalSeconds)
 
-        // Switch to timer tab
-        selectedTab = .timer
+        // Start the workout first, then switch tabs
+        // This ensures the user sees the running workout immediately instead of the idle state
+        timer.start()
 
-        // Start the workout after a brief delay to allow tab switch animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            timer.start()
-        }
+        // Switch to timer tab after starting - workout is already active
+        selectedTab = .timer
     }
 
     // MARK: - Initialization
