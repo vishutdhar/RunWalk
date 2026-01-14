@@ -2,7 +2,7 @@
 
 A simple, beautiful run-walk interval timer for iOS and Apple Watch.
 
-## Current Version: 1.4
+## Current Version: 1.5 (Build 3)
 
 ### What It Does
 
@@ -12,27 +12,39 @@ RunWalk helps runners use the run-walk method (popularized by Jeff Galloway) to 
 
 **iOS App**
 - 6 research-based interval options (30s, 1min, 1.5min, 2min, 3min, 5min)
+- **Custom interval durations** (10 seconds to 30 minutes)
+- **Workout presets** (Easy Start, Beginner, Intermediate, Advanced, custom)
 - Voice announcements ("Run" / "Walk")
 - Bell sounds on phase transitions
 - Haptic feedback
 - HealthKit integration - workouts save to Health app
-- Workout history view
+- **GPS route tracking** with live map display
+- **Distance tracking** with pace calculation
+- **Statistics & progress tracking** (streaks, weekly charts, all-time stats)
+- Workout history with detail view and route maps
+- **Siri Shortcuts** ("Hey Siri, start run walk workout")
+- **iPad optimized layout**
 - Dark theme optimized for outdoor use
 - Works with screen locked (background audio)
 
-**Apple Watch App** (NEW in 1.4)
+**Apple Watch App**
 - Standalone - works without iPhone
-- Same interval options as iOS
+- Same interval options + presets as iOS
 - Distinct haptic patterns for run vs walk phases
 - Voice announcements via watch speaker
+- **Heart rate zone display** (live HR + zone indicator during workout)
+- **GPS route tracking** with live map display
+- **Distance tracking**
 - Workouts count toward Activity Rings
 - Runs in background when wrist is lowered
-- Workout history and summary views
+- Workout history with route maps
 
 **Settings** (iOS & Watch)
 - Bells toggle - enable/disable ding sounds
 - Voice toggle - enable/disable voice announcements
 - Haptics toggle - enable/disable vibration feedback
+- GPS toggle - enable/disable location tracking
+- Age picker (watchOS) - for heart rate zone calculation
 
 ---
 
@@ -56,8 +68,11 @@ RunWalk/
 │   │   │   ├── TimerPhase.swift
 │   │   │   ├── IntervalDuration.swift
 │   │   │   ├── WorkoutStats.swift
+│   │   │   ├── WorkoutStatistics.swift
 │   │   │   ├── Clock.swift
-│   │   │   └── WorkoutRecord.swift
+│   │   │   ├── WorkoutRecord.swift
+│   │   │   ├── WorkoutPreset.swift
+│   │   │   └── HeartRateZone.swift
 │   │   ├── RunWalkFeature/           # iOS-specific code
 │   │   │   ├── ContentView.swift
 │   │   │   ├── IntervalTimer.swift
@@ -65,7 +80,14 @@ RunWalk/
 │   │   │   ├── HealthKitManager.swift
 │   │   │   ├── SoundManager.swift
 │   │   │   ├── VoiceAnnouncementManager.swift
-│   │   │   └── WorkoutHistoryView.swift
+│   │   │   ├── WorkoutHistoryView.swift
+│   │   │   ├── WorkoutDetailView.swift
+│   │   │   ├── StatisticsView.swift
+│   │   │   ├── PresetsView.swift
+│   │   │   ├── RouteMapView.swift
+│   │   │   ├── iOSLocationManager.swift
+│   │   │   └── AppIntents/
+│   │   │       └── RunWalkIntents.swift
 │   │   └── RunWalkWatchFeature/      # watchOS-specific code
 │   │       ├── WatchContentView.swift
 │   │       ├── WatchRunningView.swift
@@ -75,7 +97,10 @@ RunWalk/
 │   │       ├── WatchWorkoutManager.swift
 │   │       ├── WatchHapticManager.swift
 │   │       ├── WatchVoiceAnnouncementManager.swift
-│   │       └── WatchWorkoutHistoryView.swift
+│   │       ├── WatchWorkoutHistoryView.swift
+│   │       ├── WatchWorkoutDetailView.swift
+│   │       ├── WatchRouteMapView.swift
+│   │       └── WatchLocationManager.swift
 │   └── Tests/
 │       └── RunWalkFeatureTests/
 ├── Config/                           # Build configuration
@@ -95,6 +120,8 @@ RunWalk/
 2. **Shared Code** - `RunWalkShared` contains platform-agnostic types shared between iOS and watchOS
 3. **Embedded Watch App** - Watch app is embedded in iOS app for single App Store submission
 4. **HKWorkoutSession** - Watch app uses HealthKit workout session for background execution
+5. **App Intents** - Siri Shortcuts integration using iOS 16+ App Intents framework
+6. **Model-View (MV)** - No ViewModels, using native SwiftUI state management
 
 ---
 
@@ -112,8 +139,8 @@ RunWalk/
 ### Current Version Settings
 
 ```
-MARKETING_VERSION = 1.4
-CURRENT_PROJECT_VERSION = 1
+MARKETING_VERSION = 1.5
+CURRENT_PROJECT_VERSION = 3
 IPHONEOS_DEPLOYMENT_TARGET = 17.0
 WATCHOS_DEPLOYMENT_TARGET = 10.0
 ```
@@ -156,18 +183,29 @@ xcodebuild -project RunWalk.xcodeproj -scheme RunWalk \
 
 ---
 
+## Version History
+
+| Version | Features |
+|---------|----------|
+| 1.5 (Build 3) | Statistics & progress tracking, Siri Shortcuts, Heart rate zones on watchOS |
+| 1.5 (Build 2) | "Acquiring GPS Signal" message, iPad layout fixes, swipeable workout pages |
+| 1.5 (Build 1) | GPS route tracking, live maps, distance tracking, workout detail view |
+| 1.4 | Apple Watch app, Bells/Haptics settings toggles |
+| 1.3 | Workout history, HealthKit saving |
+| 1.2 | Settings view, Voice toggle |
+| 1.1 | Bug fixes |
+| 1.0 | Initial release |
+
+---
+
 ## What's Next
 
 Potential future features:
-- Custom interval durations (user-defined times)
-- Workout presets/programs (e.g., "5K Training", "Marathon Prep")
-- Apple Watch complications
-- Siri shortcuts ("Start my run-walk workout")
 - iOS widgets
-- Heart rate zone integration
-- GPS tracking for outdoor runs
-- Statistics and progress tracking
 - Audio coaching messages
+- Social sharing / challenges
+- Apple Watch complications (beyond current implementation)
+- Export workout data
 
 ---
 
@@ -189,4 +227,4 @@ These establish coding standards for SwiftUI, Swift Concurrency, and the MV (Mod
 
 ---
 
-*Built with Swift, SwiftUI, and HealthKit*
+*Built with Swift 6.1+, SwiftUI, and HealthKit*
