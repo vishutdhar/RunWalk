@@ -33,6 +33,7 @@ public struct ContentView: View {
 
     enum Tab: String {
         case timer = "RunWalk"
+        case presets = "Presets"
         case history = "History"
         case settings = "Settings"
     }
@@ -54,14 +55,23 @@ public struct ContentView: View {
                 }
                 .tag(Tab.timer)
 
-            // Tab 2: History
+            // Tab 2: Presets
+            PresetsView(onPresetSelected: { preset in
+                applyPreset(preset)
+            })
+                .tabItem {
+                    Label("Presets", systemImage: "list.bullet.rectangle.portrait")
+                }
+                .tag(Tab.presets)
+
+            // Tab 3: History
             WorkoutHistoryView()
                 .tabItem {
                     Label("History", systemImage: "clock.arrow.circlepath")
                 }
                 .tag(Tab.history)
 
-            // Tab 3: Settings
+            // Tab 4: Settings
             SettingsTabView(
                 voiceEnabled: $voiceEnabled,
                 bellsEnabled: $bellsEnabled,
@@ -621,6 +631,23 @@ public struct ContentView: View {
     private var progress: Double {
         let elapsed = timer.currentIntervalSeconds - timer.timeRemaining
         return Double(elapsed) / Double(timer.currentIntervalSeconds)
+    }
+
+    // MARK: - Preset Actions
+
+    /// Applies a workout preset by setting the run/walk intervals, switching to timer tab, and starting the workout
+    private func applyPreset(_ preset: WorkoutPreset) {
+        // Apply the preset intervals
+        timer.runIntervalSelection = IntervalSelection.smartSelection(seconds: preset.runIntervalSeconds)
+        timer.walkIntervalSelection = IntervalSelection.smartSelection(seconds: preset.walkIntervalSeconds)
+
+        // Switch to timer tab
+        selectedTab = .timer
+
+        // Start the workout after a brief delay to allow tab switch animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            timer.start()
+        }
     }
 
     // MARK: - Initialization
