@@ -8,25 +8,56 @@ public struct WorkoutHistoryView: View {
 
     @Environment(\.modelContext) private var modelContext
 
+    // MARK: - State
+
+    @State private var selectedView: HistoryViewMode = .history
+
     // MARK: - Query
 
     @Query(sort: \WorkoutRecord.startDate, order: .reverse)
     private var workouts: [WorkoutRecord]
 
+    // MARK: - View Mode
+
+    private enum HistoryViewMode: String, CaseIterable {
+        case history = "History"
+        case stats = "Stats"
+    }
+
     // MARK: - Body
 
     public var body: some View {
         NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
+            VStack(spacing: 0) {
+                // Segmented Picker
+                Picker("View", selection: $selectedView) {
+                    ForEach(HistoryViewMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
 
-                if workouts.isEmpty {
-                    emptyStateView
-                } else {
-                    workoutListView
+                // Content
+                ZStack {
+                    Color.black.ignoresSafeArea()
+
+                    switch selectedView {
+                    case .history:
+                        if workouts.isEmpty {
+                            emptyStateView
+                        } else {
+                            workoutListView
+                        }
+                    case .stats:
+                        StatisticsView()
+                    }
                 }
             }
-            .navigationTitle("History")
+            .background(Color.black)
+            .navigationTitle(selectedView == .history ? "History" : "Statistics")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(.black, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
