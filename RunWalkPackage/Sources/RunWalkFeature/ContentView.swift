@@ -18,6 +18,9 @@ public struct ContentView: View {
     @State private var showWalkCustomPicker = false
     @State private var workoutPage: WorkoutPage = .timer
 
+    /// Observes intent actions from Siri Shortcuts
+    @ObservedObject private var intentHandler = IntentActionHandler.shared
+
     /// Voice announcements setting (persisted)
     @AppStorage("voiceAnnouncementsEnabled") private var voiceEnabled = false
     /// Bells setting (persisted)
@@ -99,6 +102,9 @@ public struct ContentView: View {
         }
         .onChange(of: gpsAccuracyMode) { _, newValue in
             timer.gpsAccuracyMode = newValue
+        }
+        .onChange(of: intentHandler.pendingAction) { _, newAction in
+            handleIntentAction(newAction)
         }
         .onAppear {
             // Sync persisted settings to timer on appear
@@ -647,6 +653,36 @@ public struct ContentView: View {
 
         // Switch to timer tab after starting - workout is already active
         selectedTab = .timer
+    }
+
+    // MARK: - Siri Shortcut Actions
+
+    /// Handles actions triggered by Siri Shortcuts
+    private func handleIntentAction(_ action: IntentActionHandler.Action) {
+        switch action {
+        case .none:
+            break
+
+        case .startWorkout(let runSeconds, let walkSeconds):
+            // Set the intervals and start workout
+            timer.runIntervalSelection = IntervalSelection.smartSelection(seconds: runSeconds)
+            timer.walkIntervalSelection = IntervalSelection.smartSelection(seconds: walkSeconds)
+            timer.start()
+            selectedTab = .timer
+            intentHandler.clearAction()
+
+        case .startPreset(let presetName):
+            // Find the preset by name and apply it
+            if let preset = WorkoutPreset.builtInPreset(named: presetName) {
+                applyPreset(preset)
+            } else {
+                // Fallback: try to find in SwiftData (custom presets)
+                // For now, just start with default intervals
+                timer.start()
+                selectedTab = .timer
+            }
+            intentHandler.clearAction()
+        }
     }
 
     // MARK: - Initialization

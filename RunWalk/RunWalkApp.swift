@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AppIntents
 import RunWalkFeature
 import RunWalkShared
 
@@ -17,6 +18,9 @@ struct RunWalkApp: App {
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
+
+        // Update App Shortcuts metadata for Siri
+        RunWalkShortcuts.updateAppShortcutParameters()
     }
 
     var body: some Scene {
