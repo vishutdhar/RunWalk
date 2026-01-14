@@ -221,14 +221,14 @@ public struct ContentView: View {
 
             Spacer()
 
-            // Cancel button
+            // Stop button
             Button(action: { timer.stop() }) {
                 ZStack {
                     Circle()
                         .fill(Color.gray.opacity(0.3))
                         .frame(width: 90, height: 90)
 
-                    Text("Cancel")
+                    Text("Stop")
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white)
                 }
@@ -495,14 +495,14 @@ public struct ContentView: View {
 
             // Control buttons
             HStack(spacing: 60) {
-                // Cancel button
+                // Stop button
                 Button(action: { timer.stop() }) {
                     ZStack {
                         Circle()
                             .fill(Color.gray.opacity(0.3))
                             .frame(width: 90, height: 90)
 
-                        Text("Cancel")
+                        Text("Stop")
                             .font(.system(size: 17, weight: .semibold, design: .rounded))
                             .foregroundStyle(.white)
                     }
@@ -594,14 +594,14 @@ public struct ContentView: View {
 
             // Control buttons (same as timer page for consistency)
             HStack(spacing: 60) {
-                // Cancel button
+                // Stop button
                 Button(action: { timer.stop() }) {
                     ZStack {
                         Circle()
                             .fill(Color.gray.opacity(0.3))
                             .frame(width: 70, height: 70)
 
-                        Text("Cancel")
+                        Text("Stop")
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
                             .foregroundStyle(.white)
                     }
