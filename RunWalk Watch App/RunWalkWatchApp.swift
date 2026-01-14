@@ -8,30 +8,14 @@ struct RunWalkWatchApp: App {
     /// Timer instance shared with the content view for deep link support
     @State private var timer = WatchIntervalTimer()
 
-    /// Model container for SwiftData persistence
-    let modelContainer: ModelContainer
-
-    init() {
-        do {
-            modelContainer = try ModelContainer(for: WorkoutRecord.self, WorkoutPreset.self)
-        } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
-        }
-    }
-
     var body: some Scene {
         WindowGroup {
             WatchContentView(timer: timer)
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
-                .task {
-                    // Seed built-in presets on first launch
-                    let context = modelContainer.mainContext
-                    PresetManager.shared.seedBuiltInPresetsIfNeeded(context: context)
-                }
         }
-        .modelContainer(modelContainer)
+        .modelContainer(for: WorkoutRecord.self)
     }
 
     /// Handles deep links from widget complications

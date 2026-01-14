@@ -9,19 +9,12 @@ public struct WatchContentView: View {
 
     @Environment(\.modelContext) private var modelContext
 
-    // MARK: - SwiftData Queries
-
-    /// All workout presets
-    @Query(sort: [SortDescriptor(\WorkoutPreset.categoryRaw), SortDescriptor(\WorkoutPreset.sortOrder)])
-    private var allPresets: [WorkoutPreset]
-
     // MARK: - State
 
     /// The interval timer - can be injected externally for deep link support
     @State private var timer: WatchIntervalTimer
     @State private var showHistory = false
     @State private var showSettings = false
-    @State private var showPresets = false
 
     // MARK: - Initialization
 
@@ -156,29 +149,6 @@ public struct WatchContentView: View {
     private var selectionView: some View {
         NavigationStack {
             VStack(spacing: 8) {
-                // Presets button (if presets exist)
-                if !allPresets.isEmpty {
-                    Button {
-                        showPresets = true
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "list.bullet.rectangle")
-                                .font(.system(size: 11))
-                            Text("Presets")
-                                .font(.system(size: 13, weight: .medium, design: .rounded))
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
-                        }
-                        .foregroundStyle(.purple)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.purple.opacity(0.2), in: RoundedRectangle(cornerRadius: 10))
-                    }
-                    .buttonStyle(.plain)
-                }
-
                 // RUN interval picker
                 VStack(spacing: 4) {
                     HStack(spacing: 4) {
@@ -297,24 +267,7 @@ public struct WatchContentView: View {
                     isPresented: $showWalkPicker
                 )
             }
-            .navigationDestination(isPresented: $showPresets) {
-                WatchPresetPickerView(
-                    presets: allPresets,
-                    onSelect: { preset in
-                        applyPreset(preset)
-                        showPresets = false
-                    }
-                )
-            }
         }
-    }
-
-    // MARK: - Preset Actions
-
-    /// Applies a preset to the timer
-    private func applyPreset(_ preset: WorkoutPreset) {
-        timer.runIntervalSelection = IntervalSelection.smartSelection(seconds: preset.runIntervalSeconds)
-        timer.walkIntervalSelection = IntervalSelection.smartSelection(seconds: preset.walkIntervalSeconds)
     }
 
 }
@@ -491,54 +444,6 @@ struct WatchCustomTimePickerView: View {
         // Use smartSelection to automatically use preset if time matches
         selection = IntervalSelection.smartSelection(seconds: totalSeconds)
         onDismiss()
-    }
-}
-
-// MARK: - Watch Preset Picker View
-
-/// A view for selecting workout presets on watchOS
-struct WatchPresetPickerView: View {
-    let presets: [WorkoutPreset]
-    let onSelect: (WorkoutPreset) -> Void
-
-    /// Groups presets by category
-    private var presetsByCategory: [PresetCategory: [WorkoutPreset]] {
-        Dictionary(grouping: presets, by: { $0.category })
-    }
-
-    var body: some View {
-        List {
-            ForEach(PresetCategory.allCases.filter { presetsByCategory[$0] != nil }, id: \.self) { category in
-                if let categoryPresets = presetsByCategory[category], !categoryPresets.isEmpty {
-                    Section {
-                        ForEach(categoryPresets, id: \.id) { preset in
-                            Button {
-                                onSelect(preset)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(preset.name)
-                                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                                    Text(preset.intervalSummary)
-                                        .font(.system(size: 11, design: .rounded))
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .listRowBackground(category.color.opacity(0.15))
-                        }
-                    } header: {
-                        HStack(spacing: 4) {
-                            Image(systemName: category.icon)
-                                .font(.system(size: 10))
-                            Text(category.rawValue)
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                        .foregroundStyle(category.color)
-                    }
-                }
-            }
-        }
-        .navigationTitle("Presets")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

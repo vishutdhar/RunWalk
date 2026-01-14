@@ -10,12 +10,6 @@ public struct ContentView: View {
 
     @Environment(\.modelContext) private var modelContext
 
-    // MARK: - SwiftData Queries
-
-    /// All workout presets grouped by category
-    @Query(sort: [SortDescriptor(\WorkoutPreset.categoryRaw), SortDescriptor(\WorkoutPreset.sortOrder)])
-    private var allPresets: [WorkoutPreset]
-
     // MARK: - State
 
     @State private var timer = IntervalTimer()
@@ -23,7 +17,6 @@ public struct ContentView: View {
     @State private var showRunCustomPicker = false
     @State private var showWalkCustomPicker = false
     @State private var workoutPage: WorkoutPage = .timer
-    @State private var showSavePresetSheet = false
 
     /// Voice announcements setting (persisted)
     @AppStorage("voiceAnnouncementsEnabled") private var voiceEnabled = false
@@ -247,42 +240,6 @@ public struct ContentView: View {
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .padding(.top, 20)
 
-                    // PRESETS section
-                    if !allPresets.isEmpty {
-                        VStack(spacing: 16) {
-                            HStack {
-                                Image(systemName: "list.bullet.rectangle")
-                                    .font(.system(size: 12))
-                                Text("PRESETS")
-                                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                                    .tracking(1)
-
-                                Spacer()
-
-                                // Save current as preset button
-                                Button {
-                                    showSavePresetSheet = true
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "plus")
-                                            .font(.system(size: 10, weight: .bold))
-                                        Text("Save")
-                                            .font(.system(size: 12, weight: .semibold))
-                                    }
-                                    .foregroundStyle(.white.opacity(0.7))
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(Color.white.opacity(0.12), in: Capsule())
-                                }
-                            }
-                            .foregroundStyle(.secondary)
-
-                            // Preset chips in a flowing layout
-                            presetChipsView
-                        }
-                        .padding(.horizontal, 20)
-                    }
-
                     // RUN interval picker
                     VStack(spacing: 16) {
                         HStack {
@@ -402,14 +359,6 @@ public struct ContentView: View {
                 selection: $timer.walkIntervalSelection,
                 color: .green,
                 title: "Walk Interval"
-            )
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showSavePresetSheet) {
-            SavePresetSheet(
-                runSeconds: timer.runIntervalSelection.seconds,
-                walkSeconds: timer.walkIntervalSelection.seconds
             )
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
@@ -672,55 +621,6 @@ public struct ContentView: View {
     private var progress: Double {
         let elapsed = timer.currentIntervalSeconds - timer.timeRemaining
         return Double(elapsed) / Double(timer.currentIntervalSeconds)
-    }
-
-    /// Groups presets by category for display
-    private var presetsByCategory: [PresetCategory: [WorkoutPreset]] {
-        Dictionary(grouping: allPresets, by: { $0.category })
-    }
-
-    /// View showing preset chips organized by category
-    private var presetChipsView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ForEach(PresetCategory.allCases.filter { presetsByCategory[$0] != nil }, id: \.self) { category in
-                if let presets = presetsByCategory[category], !presets.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        // Category header (only for non-built-in categories or if multiple categories)
-                        if category == .custom || presetsByCategory.count > 1 {
-                            HStack(spacing: 6) {
-                                Image(systemName: category.icon)
-                                    .font(.system(size: 10))
-                                Text(category.rawValue)
-                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            }
-                            .foregroundStyle(category.color.opacity(0.8))
-                        }
-
-                        // Preset chips in a wrapping grid
-                        LazyVGrid(columns: [
-                            GridItem(.flexible(), spacing: 8),
-                            GridItem(.flexible(), spacing: 8)
-                        ], spacing: 8) {
-                            ForEach(presets, id: \.id) { preset in
-                                PresetChip(preset: preset) {
-                                    applyPreset(preset)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Preset Actions
-
-    /// Applies a preset to the timer
-    private func applyPreset(_ preset: WorkoutPreset) {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            timer.runIntervalSelection = IntervalSelection.smartSelection(seconds: preset.runIntervalSeconds)
-            timer.walkIntervalSelection = IntervalSelection.smartSelection(seconds: preset.walkIntervalSeconds)
-        }
     }
 
     // MARK: - Initialization
@@ -1445,160 +1345,6 @@ struct WorkoutSummaryView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-    }
-}
-
-// MARK: - Preset Chip Component
-
-/// A chip that displays a workout preset
-struct PresetChip: View {
-    let preset: WorkoutPreset
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(preset.name)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-
-                Text(preset.intervalSummary)
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(preset.category.color.opacity(0.15))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(preset.category.color.opacity(0.3), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Save Preset Sheet
-
-/// Sheet for saving current intervals as a preset
-struct SavePresetSheet: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-
-    let runSeconds: Int
-    let walkSeconds: Int
-
-    @State private var presetName: String = ""
-    @FocusState private var isNameFocused: Bool
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-
-                VStack(spacing: 24) {
-                    // Current intervals display
-                    HStack(spacing: 20) {
-                        VStack(spacing: 4) {
-                            HStack(spacing: 4) {
-                                Circle().fill(Color.orange).frame(width: 8, height: 8)
-                                Text("RUN")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(.orange)
-                            }
-                            Text(formatSeconds(runSeconds))
-                                .font(.system(size: 24, weight: .semibold, design: .rounded))
-                        }
-
-                        Text("/")
-                            .font(.system(size: 20, weight: .light))
-                            .foregroundStyle(.secondary)
-
-                        VStack(spacing: 4) {
-                            HStack(spacing: 4) {
-                                Circle().fill(Color.green).frame(width: 8, height: 8)
-                                Text("WALK")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(.green)
-                            }
-                            Text(formatSeconds(walkSeconds))
-                                .font(.system(size: 24, weight: .semibold, design: .rounded))
-                        }
-                    }
-                    .padding(.top, 20)
-
-                    // Name input
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Preset Name")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.secondary)
-
-                        TextField("My Preset", text: $presetName)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 17))
-                            .padding()
-                            .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
-                            .focused($isNameFocused)
-                    }
-                    .padding(.horizontal, 20)
-
-                    Spacer()
-
-                    // Save button
-                    Button(action: savePreset) {
-                        Text("Save Preset")
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(presetName.isEmpty ? Color.gray : Color.purple)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    .disabled(presetName.isEmpty)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
-                }
-            }
-            .navigationTitle("Save Preset")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-            .onAppear {
-                isNameFocused = true
-            }
-        }
-    }
-
-    private func formatSeconds(_ seconds: Int) -> String {
-        let mins = seconds / 60
-        let secs = seconds % 60
-        if mins == 0 {
-            return "\(secs)s"
-        } else if secs == 0 {
-            return "\(mins)m"
-        } else {
-            return "\(mins)m \(secs)s"
-        }
-    }
-
-    private func savePreset() {
-        PresetManager.shared.createUserPreset(
-            name: presetName,
-            runSeconds: runSeconds,
-            walkSeconds: walkSeconds,
-            context: modelContext
-        )
-        dismiss()
     }
 }
 
